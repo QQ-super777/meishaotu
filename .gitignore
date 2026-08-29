@@ -1,0 +1,6 @@
+# 只发布 app 本体,其它草稿/备份/预览都不上线
+*
+!.gitignore
+!index.html
+!img/
+!img/**

@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="美少兔食堂">
+<meta name="theme-color" content="#fff6fa">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="icon" href="img/icon-192.png">
+<title>美少兔食堂</title>
+<style>
+:root{
+  --card:#ffffff; --ink:#6a4c56; --ink2:#b193a0; --ink3:#d6bfc8;
+  --pink:#ffdde7; --blue:#d8e8ff; --cream:#fff0cd; --apricot:#ffe1d2;
+  --hot:#ff9cb8; --hot2:#ff85a8;
+  --grid:rgba(255,171,201,.22);
+  --r:26px;
+  --sh:0 5px 15px rgba(255,150,180,.18);
+  --sh2:0 8px 22px rgba(255,150,180,.24);
+  --shup:0 -3px 16px rgba(255,150,180,.13);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  color:var(--ink);min-height:100vh;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 27px,var(--grid) 27px 29px),
+    repeating-linear-gradient(90deg,transparent 0 27px,var(--grid) 27px 29px),
+    linear-gradient(170deg,#fff6fa 0%,#fdf3ff 55%,#f4f6ff 100%);
+  background-attachment:fixed;
+  font-family:"Yuanti SC","YuanTi SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Maru Gothic ProN","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;
+  padding-bottom:calc(94px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:none;
+}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;padding:0}
+h1{margin:0;font-weight:700}
+.hide{display:none!important}
+::-webkit-scrollbar{display:none}
+
+/* ───── 顶栏 ───── */
+header{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,rgba(255,246,250,.95) 60%,rgba(255,246,250,.7));
+  backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
+  padding:calc(env(safe-area-inset-top) + 12px) 18px 6px;
+}
+.hrow{display:flex;align-items:center;gap:10px;max-width:660px;margin:0 auto}
+.hcats{display:flex;flex:0 0 auto}
+.hcats img{width:38px;height:38px;border-radius:50%;border:2.5px solid #fff;background:#fff;box-shadow:0 2px 9px rgba(220,140,170,.3)}
+.hcats img:last-child{margin-left:-13px}
+.htxt{flex:1;min-width:0}
+.htxt h1{font-size:21px;letter-spacing:-.2px;line-height:1.25}
+.htxt .sub{font-size:12px;color:var(--ink2)}
+.dice{
+  flex:0 0 auto;width:42px;height:42px;border-radius:50%;background:#fff;
+  box-shadow:0 4px 13px rgba(255,150,180,.28);font-size:19px;line-height:42px;text-align:center;
+  transition:transform .15s;
+}
+.dice:active{transform:scale(.88) rotate(20deg)}
+
+.filters{display:flex;gap:7px;overflow-x:auto;padding:9px 18px 5px;max-width:660px;margin:0 auto}
+.filters button{
+  flex:0 0 auto;padding:6px 14px;border-radius:20px;background:#fff;
+  font-size:13px;font-weight:600;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.14);
+  transition:all .15s;
+}
+.filters button.on{background:var(--hot);color:#fff;box-shadow:0 4px 12px rgba(255,140,175,.4)}
+
+main{padding:8px 16px 0;max-width:660px;margin:0 auto}
+.sect{display:flex;align-items:baseline;gap:7px;margin:20px 0 10px}
+.sect .t{font-size:16px;font-weight:700}
+.sect .n{font-size:12px;color:var(--ink3)}
+.empty{text-align:center;color:var(--ink2);padding:44px 20px;font-size:14px;line-height:1.9}
+.empty img{width:98px;height:98px;border-radius:50%;border:3px solid #fff;box-shadow:var(--sh2);margin-bottom:12px}
+
+/* ───── 招牌横滑 ───── */
+.signrow{display:flex;gap:11px;overflow-x:auto;padding:3px 3px 10px;scroll-snap-type:x mandatory}
+.sign{
+  flex:0 0 132px;scroll-snap-align:start;background:var(--card);border-radius:22px;
+  box-shadow:var(--sh);overflow:hidden;cursor:pointer;transition:transform .14s;
+}
+.sign:active{transform:scale(.96)}
+.sign .p{height:92px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:34px}
+.sign .b{padding:7px 10px 9px}
+.sign .b .n{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sign .b .p2{font-size:11px;letter-spacing:-1px}
+
+/* ───── 菜品网格 ───── */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+body{overflow-x:hidden}
+.dish{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;position:relative;cursor:pointer;transition:transform .14s;
+}
+.dish:active{transform:scale(.965)}
+.dish.want::after{content:"";position:absolute;inset:5px;border:2px dashed #ffc4d6;border-radius:21px;pointer-events:none}
+.dish .pic{
+  aspect-ratio:1/1;background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;
+}
+.s-zhe{background-color:var(--blue)}
+.s-me{background-color:var(--pink)}
+.s-delivery{background-color:var(--cream)}
+.s-restaurant{background-color:var(--apricot)}
+.dish .bd{padding:9px 12px 12px}
+.dish .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.dish .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.paws{font-size:11px;letter-spacing:-1.5px;margin-top:3px;height:17px}
+.badge{
+  position:absolute;top:8px;left:8px;background:#fff;border-radius:20px;
+  font-size:10.5px;font-weight:700;padding:2px 9px;box-shadow:0 2px 7px rgba(220,140,170,.24);
+}
+.heart{position:absolute;top:7px;right:9px;font-size:17px;filter:drop-shadow(0 2px 3px rgba(200,100,130,.3))}
+.plus{
+  position:absolute;right:9px;bottom:9px;width:33px;height:33px;border-radius:50%;
+  background:#fff;color:var(--hot2);font-size:19px;line-height:31px;text-align:center;
+  box-shadow:0 3px 10px rgba(255,140,175,.35);z-index:2;transition:all .16s;font-weight:700;
+}
+.plus.in{background:var(--hot);color:#fff;transform:rotate(135deg)}
+.plus:active{transform:scale(.85)}
+
+/* ───── FAB / 底栏 ───── */
+.fab{
+  position:fixed;right:17px;bottom:calc(env(safe-area-inset-bottom) + 82px);z-index:31;
+  width:58px;height:58px;border-radius:50%;background:linear-gradient(160deg,#ffadc4,#ff8bab);
+  font-size:30px;line-height:56px;text-align:center;color:#fff;font-weight:700;
+  box-shadow:0 8px 20px rgba(255,130,170,.48);transition:transform .14s;
+}
+.fab:active{transform:scale(.9)}
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,252,254,.94);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shup);
+  padding:9px 0 calc(env(safe-area-inset-bottom) + 7px);display:flex;justify-content:space-around;
+}
+nav b{display:flex;flex-direction:column;align-items:center;gap:1px;font-weight:600;font-size:10.5px;color:var(--ink3);padding:2px 16px;position:relative;cursor:pointer}
+nav b i{font-size:20px;font-style:normal;filter:grayscale(1) opacity(.38);transition:filter .15s}
+nav b img{width:22px;height:22px;border-radius:50%;filter:grayscale(1) opacity(.42)}
+nav b.on{color:var(--hot2);font-weight:700}
+nav b.on i,nav b.on img{filter:none}
+nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-radius:20px;background:var(--hot);color:#fff;font-size:10px;line-height:18px;text-align:center;padding:0 4px;box-shadow:0 2px 6px rgba(255,130,170,.5)}
+
+/* ───── 弹层 ───── */
+.mask{position:fixed;inset:0;background:rgba(90,60,75,.36);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:41;
+  background:linear-gradient(175deg,#fff8fb 0%,#fdf5ff 60%,#f7f7ff 100%);
+  border-radius:30px 30px 0 0;max-height:93vh;display:flex;flex-direction:column;
+  box-shadow:0 -8px 30px rgba(200,130,165,.22);
+  transform:translateY(101%);transition:transform .32s cubic-bezier(.32,.72,0,1);
+}
+.sheet.on{transform:translateY(0)}
+.shead{padding:14px 18px 12px;display:flex;align-items:center;gap:10px}
+.shead .ti{flex:1;font-weight:700;font-size:17px;text-align:center}
+.shead button{font-size:14.5px;color:var(--ink2);min-width:46px;font-weight:600}
+.shead button.pri{color:var(--hot2);font-weight:700;text-align:right}
+.sbody{padding:6px 18px calc(env(safe-area-inset-bottom) + 30px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ───── 表单 ───── */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.seg button{padding:11px 4px;border-radius:18px;background:#fff;font-size:13px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13);transition:all .15s}
+.seg button.on{color:var(--ink);box-shadow:0 4px 13px rgba(255,150,180,.3)}
+.seg button.on[data-s=zhe]{background:var(--blue)}
+.seg button.on[data-s=me]{background:var(--pink)}
+.seg button.on[data-s=delivery]{background:var(--cream)}
+.seg button.on[data-s=restaurant]{background:var(--apricot)}
+.stg{display:flex;gap:8px;margin-bottom:15px}
+.stg button{flex:1;padding:11px;border-radius:18px;background:#fff;font-size:13px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.stg button.on{background:var(--hot);color:#fff;box-shadow:0 4px 13px rgba(255,140,175,.35)}
+.f{margin-bottom:13px}
+.f label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:6px;font-weight:700;padding-left:4px}
+.f input,.f textarea,.f select{
+  width:100%;background:#fff;border:0;border-radius:18px;padding:12px 15px;outline:none;
+  box-shadow:0 2px 8px rgba(255,150,180,.13);transition:box-shadow .15s;
+}
+.f textarea{resize:none;min-height:64px;line-height:1.55}
+.f input:focus,.f textarea:focus,.f select:focus{box-shadow:0 0 0 2.5px var(--hot),0 4px 12px rgba(255,150,180,.22)}
+.f2{display:flex;gap:10px}.f2>.f{flex:1;min-width:0}
+.photo{
+  height:170px;border-radius:24px;background:#fff;box-shadow:var(--sh);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:var(--ink3);font-size:13px;margin-bottom:15px;background-size:cover;background-position:center;
+  overflow:hidden;position:relative;font-weight:600;
+}
+.photo:not(.has)::after{content:"";position:absolute;inset:8px;border:2px dashed #ffd0de;border-radius:18px}
+.photo .ph{font-size:32px}
+.photo .x{position:absolute;top:9px;right:9px;background:#fff;color:var(--ink);width:29px;height:29px;border-radius:50%;font-size:15px;line-height:29px;text-align:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:2}
+.pawpick{display:flex;gap:5px;align-items:center;background:#fff;border-radius:18px;padding:9px 13px;box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.pawpick button{font-size:26px;line-height:1;filter:grayscale(1) opacity(.25);transition:all .14s}
+.pawpick button.on{filter:none;transform:scale(1.1)}
+.pawpick .z{font-size:12px;color:var(--ink3);margin-left:6px;font-weight:600}
+.tagpick{display:flex;flex-wrap:wrap;gap:7px}
+.tagpick button{padding:7px 13px;border-radius:20px;background:#fff;font-size:12.5px;font-weight:600;color:var(--ink2);box-shadow:0 2px 7px rgba(255,150,180,.13)}
+.tagpick button.on{background:var(--hot);color:#fff;box-shadow:0 3px 10px rgba(255,140,175,.34)}
+.togg{width:100%;padding:12px;border-radius:18px;background:#fff;color:var(--ink2);font-size:13.5px;font-weight:700;box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.togg.on{background:var(--hot);color:#fff;box-shadow:0 4px 13px rgba(255,140,175,.34)}
+
+/* ───── 详情 ───── */
+.vpic{height:212px;border-radius:24px;box-shadow:var(--sh2);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:62px;margin-bottom:15px}
+.vh{display:flex;align-items:center;gap:9px}
+.vh .n{font-size:23px;font-weight:700;flex:1;min-width:0}
+.vmeta{color:var(--ink2);font-size:13px;margin:3px 0 8px}
+.vpaws{font-size:19px;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chips span{background:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;box-shadow:0 2px 7px rgba(255,150,180,.13)}
+.blk{background:var(--card);border-radius:22px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--sh)}
+.blk .bl{font-size:12px;color:var(--ink2);font-weight:700;margin-bottom:5px}
+.blk .bv{white-space:pre-wrap;word-break:break-word}
+.kv{display:flex;padding:9px 0;border-bottom:1.5px dashed #f6dde6;font-size:14px;gap:12px}
+.kv:last-child{border:0;padding-bottom:0}
+.kv .k{color:var(--ink2);flex:0 0 66px;font-size:12.5px;font-weight:600}
+.kv .v{flex:1;min-width:0;word-break:break-word}
+.logitem{display:flex;gap:11px;padding:11px 0;border-bottom:1.5px dashed #f6dde6}
+.logitem:last-child{border:0;padding-bottom:2px}
+.logitem .li{width:54px;height:54px;flex:0 0 auto;border-radius:16px;background-size:cover;background-position:center;background-color:var(--pink);box-shadow:0 2px 8px rgba(255,150,180,.2)}
+.logitem .lc{flex:1;min-width:0}
+.logitem .ld{font-size:11.5px;color:var(--ink3);font-weight:600}
+.logitem .lt{white-space:pre-wrap;word-break:break-word;font-size:14px}
+.logitem .lx{color:var(--ink3);font-size:16px;padding:0 2px;align-self:flex-start}
+.addlog{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+.addlog textarea{flex:1;min-height:44px;background:#fff9fb;border:0;border-radius:16px;padding:10px 13px;outline:none;resize:none;box-shadow:inset 0 0 0 1.5px #ffe3ec}
+.addlog .cam{width:44px;height:44px;flex:0 0 auto;border-radius:16px;background:#fff9fb center/cover;font-size:19px;line-height:44px;text-align:center;box-shadow:inset 0 0 0 1.5px #ffe3ec}
+.addlog .go{flex:0 0 auto;background:var(--hot);color:#fff;border-radius:16px;padding:11px 16px;font-weight:700;box-shadow:0 3px 10px rgba(255,140,175,.35)}
+.bigbtn{width:100%;padding:15px;border-radius:22px;font-size:15px;font-weight:700;margin-bottom:11px;background:#fff;box-shadow:var(--sh);transition:transform .14s}
+.bigbtn.pink{background:linear-gradient(160deg,#ffadc4,#ff8bab);color:#fff;box-shadow:0 6px 18px rgba(255,130,170,.42)}
+.bigbtn.blue{background:linear-gradient(160deg,#bcd9fb,#93bff0);color:#fff;box-shadow:0 6px 18px rgba(130,170,230,.4)}
+.bigbtn:active{transform:scale(.975)}
+.danger{width:100%;padding:12px;border-radius:18px;background:transparent;color:#dd8fa5;font-size:13.5px;font-weight:600;margin-top:8px}
+
+/* ───── 点单 / 小票 ───── */
+.cartitem{display:flex;align-items:center;gap:11px;background:#fff;border-radius:22px;padding:11px 14px;margin-bottom:10px;box-shadow:var(--sh)}
+.cartitem .ci{width:48px;height:48px;flex:0 0 auto;border-radius:16px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:22px}
+.cartitem .cn{flex:1;min-width:0}
+.cartitem .cn b{font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cartitem .cn small{color:var(--ink3);font-size:11.5px}
+.cartitem .cx{color:var(--ink3);font-size:20px;padding:0 3px}
+
+.receipt{
+  background:#fffdfe;padding:24px 21px 19px;position:relative;border-radius:3px;
+  box-shadow:0 8px 26px rgba(200,130,165,.24);
+}
+.receipt::before,.receipt::after{
+  content:"";position:absolute;left:0;right:0;height:9px;
+  background:radial-gradient(circle at 5px 0,transparent 5px,#fffdfe 5px);background-size:10px 9px;
+}
+.receipt::before{top:-8px;transform:rotate(180deg)}
+.receipt::after{bottom:-8px}
+.rc-h{text-align:center;border-bottom:2px dashed #f3d7e2;padding-bottom:14px}
+.rc-h .cats{display:flex;justify-content:center;margin-bottom:8px}
+.rc-h .cats img{width:46px;height:46px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 9px rgba(220,140,170,.3)}
+.rc-h .cats img:last-child{margin-left:-15px}
+.rc-h .tt{font-size:20px;font-weight:700;letter-spacing:2px}
+.rc-h .ss{font-size:10.5px;color:var(--ink2);letter-spacing:1.5px;margin-top:2px}
+.rc-info{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink2);padding:10px 0;border-bottom:2px dashed #f3d7e2;gap:6px}
+.rc-li{display:flex;align-items:baseline;gap:8px;padding:9px 0;font-size:15px}
+.rc-li .no{color:var(--ink3);font-size:12px;width:18px;flex:0 0 auto}
+.rc-li .nm{flex:0 0 auto;font-weight:700}
+.rc-li .dots{flex:1;border-bottom:1.5px dotted #eccddb;transform:translateY(-4px)}
+.rc-li .pw{flex:0 0 auto;font-size:11px;letter-spacing:-2px}
+.rc-msg{border-top:2px dashed #f3d7e2;margin-top:6px;padding-top:13px;font-size:13.5px;line-height:1.7}
+.rc-msg .l{font-size:11px;color:var(--ink2);font-weight:700}
+.rc-foot{text-align:center;padding-top:17px;margin-top:13px;border-top:2px dashed #f3d7e2;position:relative}
+.rc-foot .th{font-size:12px;color:var(--ink2);letter-spacing:1.5px}
+.stamp{
+  position:absolute;right:0;top:-8px;width:78px;height:78px;border-radius:50%;
+  border:2.5px solid #ffb3c8;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transform:rotate(-14deg);opacity:.92;background:rgba(255,255,255,.55);
+}
+.stamp img{width:39px;height:39px;border-radius:50%}
+.stamp small{font-size:8px;color:#f28aa8;font-weight:700;letter-spacing:.5px;line-height:1.2;margin-top:1px}
+.order{background:#fff;border-radius:22px;padding:13px 15px;margin-bottom:11px;box-shadow:var(--sh);cursor:pointer}
+.order .od{font-size:11.5px;color:var(--ink3);font-weight:600}
+.order .on2{font-weight:700;margin-top:2px}
+
+/* ───── 小窝 ───── */
+.hero{text-align:center;padding:8px 0 18px}
+.hero .cc{display:flex;justify-content:center;margin-bottom:10px}
+.hero .cc img{width:90px;height:90px;border-radius:50%;border:3.5px solid #fff;box-shadow:var(--sh2)}
+.hero .cc img:last-child{margin-left:-24px}
+.hero .nm{font-size:19px;font-weight:700}
+.hero .ds{font-size:12.5px;color:var(--ink2)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:14px}
+.tile{background:#fff;border-radius:22px;box-shadow:var(--sh);padding:15px 12px;text-align:center}
+.tile .v{font-size:27px;font-weight:700;line-height:1.2;color:var(--hot2)}
+.tile .l{font-size:11.5px;color:var(--ink2);font-weight:600}
+.rank{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1.5px dashed #f6dde6}
+.rank:last-child{border:0;padding-bottom:0}
+.rank .i{width:20px;color:var(--ink3);font-size:12.5px;font-weight:700}
+.rank .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.rank .v{color:var(--ink3);font-size:11px;letter-spacing:-1.5px}
+
+/* ───── 摇一摇 ───── */
+.rollbox{text-align:center;padding:8px 0 4px}
+.rollbox .rimg{width:114px;height:114px;border-radius:50%;border:3.5px solid #fff;box-shadow:var(--sh2);margin-bottom:13px;animation:bob 1.5s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+.rollbox .say{font-size:14px;color:var(--ink2);margin-bottom:14px;font-weight:600}
+.rollbox .big{font-size:31px;font-weight:700;margin-bottom:4px}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 114px);transform:translateX(-50%) translateY(10px);
+  background:rgba(120,70,90,.94);color:#fff;padding:11px 21px;border-radius:24px;font-size:13.5px;font-weight:600;
+  z-index:60;opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;box-shadow:0 6px 18px rgba(150,90,115,.3);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ───── 店卡 ───── */
+.shop{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+  padding:14px 16px;margin-bottom:11px;cursor:pointer;transition:transform .14s;position:relative;
+}
+.shop:active{transform:scale(.98)}
+.shop .sn{font-weight:700;font-size:16.5px;padding-right:20px}
+.shop .sm{font-size:12px;color:var(--ink2);margin-top:2px}
+.shop .sl{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.shop .sl span{background:#fff7fa;border-radius:20px;padding:3px 11px;font-size:11.5px;font-weight:600;box-shadow:0 1px 5px rgba(255,150,180,.14);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shop .sl span.w{background:#fff2ee;color:#d9866f}
+.shop .go{position:absolute;right:15px;top:15px;color:var(--ink3);font-size:17px;line-height:1}
+.srctag{
+  position:absolute;top:8px;right:8px;background:rgba(255,255,255,.95);border-radius:20px;
+  font-size:10.5px;font-weight:700;padding:2px 8px;box-shadow:0 2px 7px rgba(220,140,170,.24);z-index:2;
+  max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.dish .heart{top:auto;right:auto;bottom:10px;left:10px}
+.drow{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1.5px dashed #f6dde6;cursor:pointer}
+.drow:last-child{border:0;padding-bottom:2px}
+.drow .n{flex:1;min-width:0;font-weight:700;font-size:14.5px;line-height:1.45}
+.drow .n small{display:block;font-weight:400;font-size:11.5px;color:var(--ink2);line-height:1.5}
+.drow .v{flex:0 0 auto;font-size:11px;letter-spacing:-1.5px;color:var(--ink3);padding-top:3px}
+
+/* ───── 点单浮条 ───── */
+.cartbar{
+  position:fixed;left:15px;right:15px;bottom:calc(env(safe-area-inset-bottom) + 74px);z-index:29;
+  background:linear-gradient(160deg,#ffadc4,#ff8bab);color:#fff;border-radius:22px;padding:13px 20px;
+  font-weight:700;font-size:14.5px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 8px 22px rgba(255,130,170,.45);transition:transform .22s,opacity .22s;
+}
+.cartbar.off{opacity:0;transform:translateY(22px);pointer-events:none}
+
+/* ───── 吃饭流水 ───── */
+.tlday{font-size:12.5px;font-weight:700;color:var(--ink2);margin:15px 0 7px;padding-left:5px}
+.tlitem{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:20px;padding:11px 14px;margin-bottom:8px;box-shadow:0 2px 9px rgba(255,150,180,.14)}
+.tlitem .e{font-size:16px;flex:0 0 auto;line-height:1.5}
+.tlitem .c{flex:1;min-width:0}
+.tlitem .c b{font-weight:700;font-size:14.5px}
+.tlitem .c small{display:block;color:var(--ink2);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.tlitem .tp{width:46px;height:46px;flex:0 0 auto;border-radius:14px;background-size:cover;background-position:center;background-color:var(--pink)}
+
+/* ───── 本月小结 ───── */
+.sumcard{background:linear-gradient(170deg,#fff8fb,#fdf1f7 60%,#f8f5ff);border-radius:26px;padding:22px 20px 18px;box-shadow:var(--sh2);text-align:center}
+.sumcard .cc{display:flex;justify-content:center;margin-bottom:8px}
+.sumcard .cc img{width:54px;height:54px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 9px rgba(220,140,170,.3)}
+.sumcard .cc img:last-child{margin-left:-16px}
+.sumcard .st{font-size:19px;font-weight:700}
+.sumcard .ss{font-size:11.5px;color:var(--ink2);letter-spacing:1px}
+.sumcard .sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0 12px}
+.sumcard .sg div{background:#fff;border-radius:18px;padding:12px 8px;box-shadow:0 2px 8px rgba(255,150,180,.13)}
+.sumcard .sg .v{font-size:24px;font-weight:700;color:var(--hot2);line-height:1.25}
+.sumcard .sg .l{font-size:11px;color:var(--ink2);font-weight:600}
+.sumcard .rk{text-align:left;background:#fff;border-radius:18px;padding:12px 15px;box-shadow:0 2px 8px rgba(255,150,180,.13)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="hcats"><img src="img/toshi-head.png" alt="十九"><img src="img/sansan-head.png" alt="三三"></div>
+    <div class="htxt"><h1 id="hTitle">美少兔食堂</h1><div class="sub" id="hSub"></div></div>
+    <button class="dice" id="dice" title="今天吃什么">🎲</button>
+  </div>
+</header>
+<div class="filters" id="filters"></div>
+
+<main>
+  <div id="vOut"></div>
+  <div id="vKitchen" class="hide"></div>
+  <div id="vHome" class="hide"></div>
+</main>
+
+<button class="cartbar off" id="cartBar"><span id="cartBarT">🧾 点了 0 道</span><span>出小票 ›</span></button>
+<button class="fab" id="fab">＋</button>
+<nav>
+  <b class="on" data-v="out"><i>🛵</i>外面吃</b>
+  <b data-v="kitchen"><i>👨‍🍳</i>自家厨房<span class="dot hide" id="cartDot">0</span></b>
+  <b data-v="home"><img src="img/toshi-head.png" alt="">小窝</b>
+</nav>
+
+<div class="mask" id="mask"></div>
+
+<!-- 加菜 / 改菜 -->
+<div class="sheet" id="shEdit">
+  <div class="shead"><button class="cl">取消</button><div class="ti" id="eTitle">加一道菜</div><button class="pri" id="eSave">存</button></div>
+  <div class="sbody">
+    <div class="f"><label>谁出品</label>
+      <div class="seg" id="eSeg">
+        <button data-s="zhe" class="on">👨‍🍳 哲大厨</button>
+        <button data-s="me">🐰 兔老板</button>
+        <button data-s="delivery">🛵 外卖</button>
+        <button data-s="restaurant">🍽️ 馆子</button>
+      </div>
+    </div>
+    <div class="stg" id="eStg">
+      <button data-st="done" class="on">✅ 吃过了</button>
+      <button data-st="want">🔖 还没吃,想吃</button>
+    </div>
+    <label class="photo" id="ePhoto" for="eFile"><span class="ph">📷</span><span id="ePhotoTip">拍张照 / 选张图</span></label>
+    <input type="file" id="eFile" accept="image/*" class="hide">
+    <div class="f"><label>菜名</label><input id="eName" placeholder="糖醋排骨"></div>
+    <div id="gShop">
+      <div class="f2">
+        <div class="f"><label>哪家店</label><input id="eShop" placeholder="店名"></div>
+        <div class="f"><label>大概多少钱</label><input id="ePrice" type="number" inputmode="decimal" placeholder="38"></div>
+      </div>
+    </div>
+    <div class="f" id="fPaws"><label>好吃吗</label>
+      <div class="pawpick" id="ePaws">
+        <button data-p="1">🐾</button><button data-p="2">🐾</button><button data-p="3">🐾</button><button data-p="4">🐾</button><button data-p="5">🐾</button>
+        <span class="z" id="ePawsTxt">还没评</span>
+      </div>
+    </div>
+    <div class="f"><label>口味标签</label><div class="tagpick" id="eTags"></div></div>
+    <div class="f"><label>一句话</label><textarea id="eNote" placeholder="肉是脱骨的,酸甜刚好…"></textarea></div>
+    <button class="togg" id="eFav">❤️ 设为本店招牌</button>
+  </div>
+</div>
+
+<!-- 菜品详情 -->
+<div class="sheet" id="shView">
+  <div class="shead"><button class="cl">关闭</button><div class="ti" id="vTitle">这道菜</div><button class="pri" id="vEditBtn">改</button></div>
+  <div class="sbody" id="vBody"></div>
+</div>
+
+<!-- 小票 -->
+<div class="sheet" id="shReceipt">
+  <div class="shead"><button class="cl">关闭</button><div class="ti">今日点单</div><button class="pri" id="rCopy">复制</button></div>
+  <div class="sbody" id="rBody"></div>
+</div>
+
+<!-- 摇一摇 -->
+<div class="sheet" id="shRoll">
+  <div class="shead"><button class="cl">算了</button><div class="ti">今天吃什么</div><button class="pri" id="rollAgain">再摇</button></div>
+  <div class="sbody" id="rollBody"></div>
+</div>
+
+<!-- 加店 / 改店 -->
+<div class="sheet" id="shShopEdit">
+  <div class="shead"><button class="cl">取消</button><div class="ti" id="seTitle">加一家店</div><button class="pri" id="seSave">存</button></div>
+  <div class="sbody">
+    <div class="f"><label>哪一类</label>
+      <div class="seg" id="seSeg">
+        <button data-s="delivery" class="on">🛵 外卖</button>
+        <button data-s="restaurant">🍽️ 馆子</button>
+      </div>
+    </div>
+    <div class="f"><label>店名</label><input id="seName" placeholder="嗦粉记"></div>
+    <div class="f"><label>下单备注(下次点的时候照着抄)</label><textarea id="seMemo" placeholder="多加一份腐竹、少油"></textarea></div>
+    <div class="f2">
+      <div class="f"><label>人均大概</label><input id="seAvg" type="number" inputmode="decimal" placeholder="26"></div>
+      <div class="f"><label>要避的雷</label><input id="seWarn" placeholder="油太重"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 店详情 -->
+<div class="sheet" id="shShop">
+  <div class="shead"><button class="cl">关闭</button><div class="ti" id="svTitle">这家店</div><button class="pri" id="svEdit">改</button></div>
+  <div class="sbody" id="svBody"></div>
+</div>
+
+<!-- 点单 -->
+<div class="sheet" id="shOrder">
+  <div class="shead"><button class="cl">关闭</button><div class="ti">给他下单</div><span style="min-width:46px"></span></div>
+  <div class="sbody" id="oBody"></div>
+</div>
+
+<!-- 本月小结 -->
+<div class="sheet" id="shSum">
+  <div class="shead"><button class="cl">关闭</button><div class="ti">本月小结</div><span style="min-width:46px"></span></div>
+  <div class="sbody" id="sumBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ 存储 ══════════════ */
+const K='ss.dishes.v3', KSH='ss.shops.v3', KOLD='ss.dishes.v2';
+const KC='ss.cart.v2', KO='ss.orders.v2', KS='ss.set.v2';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
+const sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const uid=()=>'d'+Math.random().toString(36).slice(2,9);
+const sid=()=>'sh'+Math.random().toString(36).slice(2,9);
+const ago=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
+const today=()=>new Date().toISOString().slice(0,10);
+
+const SRC={
+  zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
+  delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'},
+};
+const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
+
+/* ── 示范数据(想清空去「小窝」页底部) ── */
+const SEED=[
+ {name:'糖醋排骨',src:'zhe',st:'done',paws:5,fav:1,tags:['🥩 硬菜'],note:'他的招牌,酸甜刚好不齁,肉是脱骨的。',
+  logs:[{id:'l1',date:'2026-08-20',text:'这次收汁收得更亮,颜色特别好看 ✨',photo:''},
+        {id:'l2',date:'2026-08-26',text:'我说想吃酸一点,他多加了半勺醋,更对我胃口了',photo:''}]},
+ {name:'番茄牛腩',src:'zhe',st:'done',paws:5,fav:1,tags:['🍲 汤','🥩 硬菜'],note:'炖了两个小时,牛腩入口即化,汤拌饭能吃两碗。',logs:[]},
+ {name:'蒜蓉粉丝虾',src:'zhe',st:'done',paws:4,fav:0,tags:['🐟 海鲜'],note:'蒜香够足,虾很嫩。',
+  logs:[{id:'l3',date:'2026-08-24',text:'粉丝底下垫了点蒸鱼豉油,好吃',photo:''}]},
+ {name:'麻婆豆腐',src:'zhe',st:'done',paws:4,fav:0,tags:['🌶️ 辣','🍚 饭'],note:'很下饭,麻味刚刚好。',logs:[]},
+ {name:'冬阴功汤',src:'zhe',st:'want',paws:0,fav:0,tags:['🍲 汤','🌶️ 辣'],note:'小红书刷到的,想让他试试 🙏',logs:[]},
+ {name:'蒜蓉西兰花',src:'me',st:'done',paws:4,fav:0,tags:['🥬 清淡','⚡ 快手'],note:'我的快手菜,焯水30秒就够。',
+  logs:[{id:'l4',date:'2026-08-25',text:'焯完过一下冷水,颜色绿得多',photo:''}]},
+ {name:'番茄炒蛋',src:'me',st:'done',paws:4,fav:0,tags:['⚡ 快手','🍚 饭'],note:'先炒蛋盛出来再下番茄,蛋才嫩。',logs:[]},
+ {name:'可乐鸡翅',src:'me',st:'done',paws:2,fav:0,tags:['🍰 甜'],note:'齁甜还糊了锅底 😇 这个菜谱有问题。',
+  logs:[{id:'l5',date:'2026-08-22',text:'收汁那步火太大了,下次换个菜谱',photo:''}]},
+ {name:'白灼虾',src:'me',st:'want',paws:0,fav:0,tags:['🐟 海鲜','⚡ 快手'],note:'',logs:[]},
+ {name:'螺蛳粉',src:'delivery',st:'done',paws:4,fav:0,tags:['🍜 面','🌶️ 辣'],shop:'嗦粉记',shopId:'sh0',price:26,note:'加双份腐竹才对,汤底够酸爽。',logs:[]},
+ {name:'炸腐竹',src:'delivery',st:'done',paws:5,fav:0,tags:['⚡ 快手'],shop:'嗦粉记',shopId:'sh0',price:8,note:'必点!单加一份也不亏。',logs:[]},
+ {name:'麻辣香锅',src:'delivery',st:'done',paws:3,fav:0,tags:['🌶️ 辣'],shop:'蜀签签',shopId:'sh1',price:42,note:'菜给得足但油太重了,下次备注少油。',logs:[]},
+ {name:'潮汕牛肉火锅',src:'restaurant',st:'done',paws:5,fav:1,tags:['🥩 硬菜'],shop:'八合里',shopId:'sh2',price:326,note:'吊龙和匙柄封神,沙茶酱一定要单独加一份。',logs:[]},
+];
+const SEEDSHOPS=[
+ {id:'sh0',name:'嗦粉记',kind:'delivery',memo:'多加一份腐竹,不要香菜',avg:34,warn:'',visits:[ago(2),ago(9),ago(16)]},
+ {id:'sh1',name:'蜀签签',kind:'delivery',memo:'备注少油',avg:42,warn:'油给得太重了',visits:[ago(11)]},
+ {id:'sh2',name:'八合里',kind:'restaurant',memo:'沙茶酱单独加一份',avg:163,warn:'',visits:[ago(6)]},
+];
+
+/* ── 读数据 + 从 v2 迁移(旧键原样留着当备份,永远不写它) ── */
+let dishes=ld(K,null), shops=ld(KSH,null);
+if(dishes===null){
+  const old=ld(KOLD,null);
+  if(old&&old.length){                      // 她已经在用了 → 迁移,一道菜都不能丢
+    dishes=old.map(d=>({...d}));
+    shops=[];
+    dishes.forEach(d=>{
+      if(d.src==='bf')d.src='zhe';
+      if((d.src==='delivery'||d.src==='restaurant')&&d.shop){
+        let s=shops.find(x=>x.name===d.shop&&x.kind===d.src);
+        if(!s){s={id:sid(),name:d.shop,kind:d.src,memo:'',avg:+d.price||0,warn:'',visits:[],at:today()};shops.push(s)}
+        d.shopId=s.id;
+      }else d.shopId='';
+    });
+  }else{                                    // 全新 → 用示范数据
+    dishes=SEED.map((d,i)=>({id:'s'+i,at:today(),logs:[],...d}));
+    shops=SEEDSHOPS.map(s=>({at:today(),...s}));
+  }
+  sv(K,dishes);sv(KSH,shops);
+}
+if(shops===null){shops=[];sv(KSH,shops)}
+dishes.forEach(d=>{if(d.src==='bf')d.src='zhe';if(d.shopId===undefined)d.shopId=''});
+shops.forEach(s=>{if(!Array.isArray(s.visits))s.visits=[]});
+let cart=ld(KC,[]), orders=ld(KO,[]), stg=ld(KS,{me:'兔老板',chef:'哲哲'});
+if(!stg.chef||stg.chef==='大厨')stg.chef='哲哲';
+if(!stg.me||stg.me==='七七七')stg.me='兔老板';
+const persist=()=>{sv(K,dishes);sv(KSH,shops);sv(KC,cart);sv(KO,orders);sv(KS,stg)};
+
+/* ══════════════ 工具 ══════════════ */
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const paw=n=>n?'🐾'.repeat(n):'';
+const pic=d=>d.cover?`background-image:url(${d.cover})`:'';
+/* 没照片时按菜名自动配个图标,不然同一个人做的菜长得一模一样 */
+const ICONS=[
+ [/火锅/,'🍲'],[/排骨|肋排/,'🍖'],[/鸡翅|鸡腿|鸡/,'🍗'],[/虾/,'🦐'],[/蟹/,'🦀'],[/鱼/,'🐟'],
+ [/蛋/,'🍳'],[/豆腐|豆花/,'🥘'],[/西兰花|青菜|菜心|生菜|白菜|花菜|菠菜|芥兰/,'🥦'],
+ [/茄子/,'🍆'],[/土豆|薯/,'🥔'],[/玉米/,'🌽'],[/蘑菇|香菇|菌/,'🍄'],[/南瓜/,'🎃'],
+ [/饺|包子|馄饨|烧麦/,'🥟'],[/粉|面|米线/,'🍜'],[/粥/,'🥣'],[/汤|羹/,'🍲'],
+ [/沙拉/,'🥗'],[/寿司|刺身/,'🍣'],[/披萨/,'🍕'],[/汉堡/,'🍔'],[/咖喱/,'🍛'],
+ [/蛋糕|布丁|甜品|冰淇淋/,'🍰'],[/串|烧烤/,'🍢'],[/牛|猪|羊|肉/,'🥩'],[/番茄|西红柿/,'🍅'],
+ [/锅/,'🥘'],[/饭/,'🍚'],
+];
+function emo(d){
+  if(d.cover)return'';
+  for(const [re,e] of ICONS) if(re.test(d.name)) return e;
+  return SRC[d.src].e;
+}
+const get=id=>dishes.find(x=>x.id===id);
+let tT; const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>e.classList.remove('on'),1700)};
+function fmt(s){const d=new Date(s+'T00:00:00'),t=new Date(today()+'T00:00:00'),k=Math.round((t-d)/864e5);
+  return k===0?'今天':k===1?'昨天':(d.getMonth()+1)+'月'+d.getDate()+'日'}
+const nameOf=s=>s==='zhe'?stg.chef:s==='me'?stg.me:SRC[s].n;
+const sub=d=>{const p=[SRC[d.src].n];if(d.shop)p.push(d.shop);if(d.price)p.push('¥'+d.price);return p.join(' · ')};
+
+/* ══════════════ 视图 ══════════════ */
+const homemade=d=>d.src==='zhe'||d.src==='me';
+const shopOf=id=>shops.find(x=>x.id===id);
+const shopDishes=id=>dishes.filter(d=>d.shopId===id);
+function shopStats(s){
+  const ds=shopDishes(s.id).filter(d=>d.st==='done');
+  const must=ds.filter(d=>d.paws>=4).sort((a,b)=>b.paws-a.paws)[0];
+  const bad=ds.filter(d=>d.paws&&d.paws<=2).sort((a,b)=>a.paws-b.paws)[0];
+  const last=s.visits.length?[...s.visits].sort().pop():'';
+  return {ds,must,bad,last};
+}
+
+let view='out', fOut='all', fKit='all';
+const FOUT=()=>[['all','全部'],['delivery','🛵 外卖'],['restaurant','🍽️ 馆子']];
+const FKIT=()=>[['all','全部'],['zhe','👨‍🍳 '+stg.chef],['me','🐰 '+stg.me],['want','🔖 待尝试']];
+function drawFilters(){
+  const bar=$('#filters');
+  if(view==='home'){bar.innerHTML='';return}
+  const arr=view==='out'?FOUT():FKIT(), cur=view==='out'?fOut:fKit;
+  bar.innerHTML=arr.map(([k,l])=>`<button data-f="${k}" class="${k===cur?'on':''}">${esc(l)}</button>`).join('');
+  $$('#filters button').forEach(b=>b.onclick=()=>{
+    if(view==='out')fOut=b.dataset.f; else fKit=b.dataset.f;
+    render();
+  });
+}
+function render(){
+  $$('nav b').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  ['Out','Kitchen','Home'].forEach(v=>$('#v'+v).classList.toggle('hide',v.toLowerCase()!==view));
+  $('#filters').classList.toggle('hide',view==='home');
+  $('#dice').classList.toggle('hide',view==='home');
+  $('#fab').classList.toggle('hide',view==='home');
+  const dot=$('#cartDot');dot.textContent=cart.length;dot.classList.toggle('hide',!cart.length);
+  $('#cartBar').classList.toggle('off',!(view==='kitchen'&&cart.length));
+  $('#cartBarT').textContent=`🧾 点了 ${cart.length} 道`;
+  drawFilters();
+  /* 顶栏永远是店名,不跟着切页走 */
+  $('#hTitle').textContent='美少兔食堂'; $('#hSub').textContent='';
+  ({out:rOut,kitchen:rKitchen,home:rHome})[view]();
+}
+
+/* ── 第一格:外面吃(店卡) ── */
+/* 店卡的图:自己拍的 > 这家最高分那道菜的图 > 自动配的图标兜底 */
+function shopPic(s){
+  if(s.cover)return{bg:s.cover,ico:''};
+  const ds=shopDishes(s.id).filter(d=>d.cover).sort((a,b)=>(b.paws||0)-(a.paws||0));
+  if(ds.length)return{bg:ds[0].cover,ico:''};
+  const best=shopDishes(s.id).filter(d=>d.st==='done').sort((a,b)=>(b.paws||0)-(a.paws||0))[0];
+  return{bg:'',ico:best?emo(best):SRC[s.kind].e};
+}
+/* 卡面只留店名 + 一行,人均/上次/避雷都在店详情里 */
+function shopCard(s){
+  const {must,bad}=shopStats(s), {bg,ico}=shopPic(s);
+  const line = must ? '⭐ '+must.name
+             : s.visits.length ? `去过 ${s.visits.length} 次`
+             : '还没去过';
+  const warn = s.warn || (bad?bad.name+'一般':'');
+  return `<div class="dish" data-s="${s.id}">
+    <div class="pic s-${s.kind}" style="${bg?`background-image:url(${bg})`:''}">${ico}
+      <span class="srctag">${SRC[s.kind].e} ${SRC[s.kind].n}</span>
+      ${warn?`<span class="badge">⚠️</span>`:''}
+    </div>
+    <div class="bd"><div class="nm">${esc(s.name)}</div>
+      <div class="mt">${esc(line)}</div></div></div>`;
+}
+function rOut(){
+  const box=$('#vOut');
+  if(!shops.length){
+    box.innerHTML=`<div class="empty"><img src="img/sansan-head.png"><br>还没收录店<br>点右下角 ＋ 把常点的那家记下来</div>`;return;
+  }
+  const list=shops.filter(s=>fOut==='all'||s.kind===fOut);
+  const ttl=fOut==='delivery'?'🛵 外卖':fOut==='restaurant'?'🍽️ 馆子':'🏠 常去的';
+  let h=`<div class="sect"><span class="t">${ttl}</span><span class="n">${list.length} 家</span></div>`;
+  h+= list.length? `<div class="grid">${list.map(shopCard).join('')}</div>`
+    : `<div class="empty"><img src="img/toshi-head.png"><br>这一类还没有店</div>`;
+  box.innerHTML=h;
+  box.querySelectorAll('[data-s]').forEach(el=>el.onclick=()=>openShop(el.dataset.s));
+}
+
+/* ── 第二格:自家厨房(菜铺开) ── */
+function card(d){
+  const inCart=cart.includes(d.id);
+  return `<div class="dish ${d.st==='want'?'want':''}" data-id="${d.id}">
+    <div class="pic s-${d.src}" style="${pic(d)}">${emo(d)}
+      ${d.st==='want'?'<span class="badge">🔖 想吃</span>':''}
+      <span class="srctag">${SRC[d.src].e} ${esc(nameOf(d.src))}</span>
+      ${d.fav?'<span class="heart">❤️</span>':''}
+      <button class="plus ${inCart?'in':''}" data-add="${d.id}">＋</button>
+    </div>
+    <div class="bd"><div class="nm">${esc(d.name)}</div>
+      <div class="mt">${esc(d.note||'还没写一句话')}</div>
+      <div class="paws">${paw(d.paws)}</div></div></div>`;
+}
+function rKitchen(){
+  const box=$('#vKitchen'), all=dishes.filter(homemade);
+  if(!all.length){
+    box.innerHTML=`<div class="empty"><img src="img/sansan-head.png"><br>厨房还是空的<br>点右下角 ＋ 把他的拿手菜记下来</div>`;return;
+  }
+  let list;
+  if(fKit==='want')list=all.filter(d=>d.st==='want');
+  else if(fKit==='all')list=all.filter(d=>d.st==='done');
+  else list=all.filter(d=>d.src===fKit&&d.st==='done');
+  const fav=all.filter(d=>d.fav&&d.st==='done'), wants=all.filter(d=>d.st==='want');
+  let h='';
+  if(fKit==='all'&&fav.length){
+    h+=`<div class="sect"><span class="t">❤️ 招牌</span><span class="n">${fav.length} 道</span></div>
+        <div class="signrow">${fav.map(d=>`<div class="sign" data-id="${d.id}">
+          <div class="p s-${d.src}" style="${pic(d)}">${emo(d)}</div>
+          <div class="b"><div class="n">${esc(d.name)}</div><div class="p2">${paw(d.paws)}</div></div></div>`).join('')}</div>`;
+  }
+  if(fKit==='all')h+=`<div class="sect"><span class="t">🍳 会做的</span><span class="n">${list.length} 道</span></div>`;
+  h+= list.length?`<div class="grid">${list.map(card).join('')}</div>`
+    :`<div class="empty"><img src="img/toshi-head.png"><br>这一类还没有菜</div>`;
+  if(fKit==='all'&&wants.length){
+    h+=`<div class="sect"><span class="t">🔖 待尝试</span><span class="n">${wants.length} 道</span></div>
+        <div class="grid">${wants.map(card).join('')}</div>`;
+  }
+  h+=`<button class="bigbtn" id="kOrder" style="margin-top:18px">🧾 点单${orders.length?` · 点过 ${orders.length} 张小票`:''}</button>`;
+  box.innerHTML=h;
+  box.querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>openView(el.dataset.id));
+  box.querySelectorAll('[data-add]').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleCart(b.dataset.add)});
+  $('#kOrder').onclick=openOrder;
+}
+function toggleCart(id){
+  const d=get(id);
+  if(cart.includes(id)){cart=cart.filter(x=>x!==id);toast('拿掉了')}
+  else{cart.push(id);toast(`「${d.name}」加进点单了 🐾`)}
+  persist();render();
+  if($('#shOrder').classList.contains('on'))renderOrder();
+}
+
+/* ── 点单 ── */
+/* 小票上的「大厨」跟着点的菜自动变 */
+function chefLine(items){
+  const z=items.some(i=>i.src==='zhe'), m=items.some(i=>i.src==='me');
+  const out=items.some(i=>i.src==='delivery'||i.src==='restaurant');
+  if(z&&m)return`两位一起 ${stg.chef} & ${stg.me}`;
+  if(z)return`大厨 ${stg.chef}`;
+  if(m)return`今晚 ${stg.me} 下厨`;
+  if(out)return'今天不开火';
+  return'待定';
+}
+function openOrder(){renderOrder();openSheet($('#shOrder'))}
+function renderOrder(){
+  const box=$('#oBody');
+  let h='';
+  if(!cart.length){
+    h+=`<div class="empty"><img src="img/toshi-head.png"><br>还没点菜<br>回厨房点几道,十九帮你写小票</div>`;
+  }else{
+    const items=cart.map(id=>get(id)).filter(Boolean);
+    h+=`<div class="sect"><span class="t">🧾 点了这些</span><span class="n">${cart.length} 道</span></div>`;
+    h+=items.map(d=>`<div class="cartitem"><div class="ci s-${d.src}" style="${pic(d)}">${emo(d)}</div>
+        <div class="cn"><b>${esc(d.name)}</b><small>${esc(sub(d))}</small></div>
+        <button class="cx" data-rm="${d.id}">×</button></div>`).join('');
+    h+=`<div class="f" style="margin-top:16px"><label>想说点什么(${esc(chefLine(items))})</label>
+        <textarea id="oMsg" placeholder="今晚可以吗?我洗碗 🙏">${esc(pendingMsg)}</textarea></div>
+      <button class="bigbtn pink" id="oMake">🧾 出小票</button>
+      <button class="bigbtn" id="oClear">清空点单</button>`;
+  }
+  if(orders.length){
+    h+=`<div class="sect"><span class="t">📮 点过的单</span><span class="n">${orders.length} 张</span></div>`;
+    h+=orders.slice(0,12).map(o=>`<div class="order" data-o="${o.id}">
+      <div class="od">${fmt(o.at)} · ${o.items.length} 道</div>
+      <div class="on2">${o.items.map(i=>esc(i.name)).join('、')}</div></div>`).join('');
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>toggleCart(b.dataset.rm));
+  box.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>showReceipt(orders.find(o=>o.id===b.dataset.o)));
+  const ta=$('#oMsg'); if(ta)ta.oninput=()=>pendingMsg=ta.value;
+  const mk=$('#oMake'); if(mk)mk.onclick=makeOrder;
+  const cl=$('#oClear'); if(cl)cl.onclick=()=>{if(confirm('清空点单?')){cart=[];persist();render();renderOrder()}};
+}
+let pendingMsg='';
+function makeOrder(){
+  const o={id:'o'+Math.random().toString(36).slice(2,8),at:today(),
+    items:cart.map(id=>{const d=get(id);return d&&{id,name:d.name,paws:d.paws,src:d.src}}).filter(Boolean),
+    msg:pendingMsg.trim()};
+  orders.unshift(o); cart=[]; pendingMsg=''; persist(); render(); closeSheets(); showReceipt(o);
+}
+function receiptText(o){
+  return `🧾 美少兔食堂 · 今日点单\n顾客:${stg.me}   ${chefLine(o.items)}\n${o.at}\n`+
+    '－－－－－－－－－－－－\n'+o.items.map((i,n)=>`${n+1}. ${i.name}${i.paws?'  '+'🐾'.repeat(i.paws):''}`).join('\n')+
+    '\n－－－－－－－－－－－－'+(o.msg?`\n📝 ${o.msg}`:'')+'\n🐾 十九和三三盖章保证:很想吃';
+}
+let curOrder=null;
+function showReceipt(o){
+  if(!o)return; curOrder=o;
+  $('#rBody').innerHTML=`<div class="receipt">
+    <div class="rc-h">
+      <div class="cats"><img src="img/toshi-head.png"><img src="img/sansan-head.png"></div>
+      <div class="tt">美 少 兔 食 堂</div><div class="ss">TODAY'S ORDER · 今日点单</div>
+    </div>
+    <div class="rc-info"><span>顾客 ${esc(stg.me)}</span><span>${esc(chefLine(o.items))}</span><span>${o.at}</span></div>
+    ${o.items.map((i,n)=>`<div class="rc-li"><span class="no">${n+1}</span><span class="nm">${esc(i.name)}</span>
+      <span class="dots"></span><span class="pw">${i.paws?'🐾'.repeat(i.paws):'🔖'}</span></div>`).join('')}
+    ${o.msg?`<div class="rc-msg"><div class="l">留言</div>${esc(o.msg)}</div>`:''}
+    <div class="rc-foot"><div class="th">谢 谢 惠 顾 · 请 早 点 开 火</div>
+      <div class="stamp"><img src="img/sansan-head.png"><small>盖章保证</small></div></div>
+  </div>
+  <div style="height:18px"></div>
+  <div style="text-align:center;color:var(--ink2);font-size:12.5px;margin-bottom:12px">截图直接发给他 📲 或者点右上角「复制」发文字</div>`;
+  openSheet($('#shReceipt'));
+}
+$('#rCopy').onclick=async()=>{
+  if(!curOrder)return;
+  try{await navigator.clipboard.writeText(receiptText(curOrder));toast('复制好了,去粘给他 📲')}
+  catch{toast('复制失败,截个图吧 😅')}
+};
+
+/* ── 小窝 ── */
+/* 吃饭流水:只显示有内容的日子,永远不算"空了几天" */
+function timeline(){
+  const ev=[];
+  shops.forEach(s=>s.visits.forEach(dt=>ev.push({date:dt,e:SRC[s.kind].e,
+    body:`<b>吃了 ${esc(s.name)}</b>${s.avg?`<small>人均大概 ¥${s.avg}</small>`:''}`})));
+  orders.forEach(o=>ev.push({date:o.at,e:'🧾',
+    body:`<b>给${esc(stg.chef)}下了单</b><small>${o.items.map(i=>esc(i.name)).join('、')}</small>`}));
+  dishes.forEach(d=>(d.logs||[]).forEach(l=>ev.push({date:l.date,e:'📝',photo:l.photo,
+    body:`<b>${esc(d.name)}</b>${l.text?`<small>${esc(l.text)}</small>`:''}`})));
+  return ev.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+}
+let tlAll=false;
+function drawTimeline(){
+  const ev=timeline();
+  if(!ev.length)return `<div style="color:var(--ink3);font-size:13.5px;padding:6px 2px;line-height:1.8">还没有记录,吃了什么随手点一下就有了 🐾</div>`;
+  const show=tlAll?ev:ev.slice(0,5);
+  let h='',cur='';
+  show.forEach(x=>{
+    if(x.date!==cur){cur=x.date;h+=`<div class="tlday">${fmt(cur)}</div>`}
+    h+=`<div class="tlitem">${x.photo?`<div class="tp" style="background-image:url(${x.photo})"></div>`:`<span class="e">${x.e}</span>`}
+      <div class="c">${x.body}</div></div>`;
+  });
+  if(!tlAll&&ev.length>5)h+=`<button class="bigbtn" id="tlMore" style="margin-top:6px">看全部 ${ev.length} 条 ↓</button>`;
+  return h;
+}
+function monthStats(){
+  const m=today().slice(0,7);
+  let meals=0,fire=0,spend=0;
+  shops.forEach(s=>s.visits.forEach(dt=>{if(dt.slice(0,7)===m){meals++;spend+=+s.avg||0}}));
+  orders.forEach(o=>{if(o.at.slice(0,7)===m){fire++;meals++}});
+  const top=dishes.filter(d=>d.paws).sort((a,b)=>b.paws-a.paws).slice(0,3);
+  return {meals,fire,spend,top,mn:+m.slice(5)};
+}
+function openSum(){
+  const {meals,fire,spend,top,mn}=monthStats();
+  $('#sumBody').innerHTML=`<div class="sumcard">
+    <div class="cc"><img src="img/toshi-head.png"><img src="img/sansan-head.png"></div>
+    <div class="st">${mn} 月的饭</div>
+    <div class="ss">美 少 兔 食 堂</div>
+    <div class="sg">
+      <div><div class="v">${meals}</div><div class="l">🍚 有记录的饭</div></div>
+      <div><div class="v">${fire}</div><div class="l">👨‍🍳 ${esc(stg.chef)}开火</div></div>
+      <div><div class="v">¥${spend.toFixed(0)}</div><div class="l">💸 外面吃(大概)</div></div>
+      <div><div class="v">${shops.length}</div><div class="l">🛵 收录的店</div></div>
+    </div>
+    ${top.length?`<div class="rk"><div style="font-size:11.5px;color:var(--ink2);font-weight:700;margin-bottom:4px">🏆 猫爪最高</div>
+      ${top.map((d,i)=>`<div class="rank"><span class="i">${i+1}</span><span class="n">${esc(d.name)}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
+  </div>
+  <div style="height:16px"></div>
+  <div style="text-align:center;color:var(--ink2);font-size:12.5px">截图发给他 📲</div>`;
+  openSheet($('#shSum'));
+}
+function rHome(){
+  const done=dishes.filter(d=>d.st==='done');
+  const top=[...done].filter(d=>d.paws).sort((a,b)=>b.paws-a.paws).slice(0,6);
+  const visits=shops.reduce((s,x)=>s+x.visits.length,0);
+  const byVisit=shops.reduce((s,x)=>s+x.visits.length*(+x.avg||0),0);
+  const spend=byVisit||done.filter(d=>!homemade(d)).reduce((s,d)=>s+(+d.price||0),0);
+  $('#vHome').innerHTML=`
+   <div class="hero"><div class="cc"><img src="img/toshi-head.png"><img src="img/sansan-head.png"></div>
+     <div class="nm">十九 & 三三</div><div class="ds">本店店长 · 只负责吃</div></div>
+   <button class="bigbtn pink" id="hSum">📸 本月小结</button>
+   <div class="tiles">
+     <div class="tile"><div class="v">${done.filter(d=>d.src==='zhe').length}</div><div class="l">👨‍🍳 ${esc(stg.chef)}会做的</div></div>
+     <div class="tile"><div class="v">${shops.length}</div><div class="l">🛵 收录了几家店</div></div>
+     <div class="tile"><div class="v">${visits}</div><div class="l">🍽️ 出去吃过几次</div></div>
+     <div class="tile"><div class="v">${dishes.filter(d=>d.st==='want').length}</div><div class="l">🔖 种草没吃到</div></div>
+   </div>
+   ${top.length?`<div class="blk"><div class="bl">🏆 猫爪排行榜</div>${top.map((d,i)=>
+     `<div class="rank"><span class="i">${i+1}</span><span class="n">${SRC[d.src].e} ${esc(d.name)}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
+   <div class="blk"><div class="bl">📖 吃饭流水</div><div id="tlBox">${drawTimeline()}</div></div>
+   <div class="blk"><div class="bl">💸 外面吃大概花过</div><div style="font-size:26px;font-weight:700;color:var(--hot2)">¥ ${spend.toFixed(0)}</div>
+     <div style="font-size:11.5px;color:var(--ink3)">按人均 × 去过的次数估的,只能看个大概</div></div>
+   <div class="blk"><div class="bl">✏️ 名字</div>
+     <div class="f2" style="margin-top:9px">
+       <div class="f"><label>我叫</label><input id="sMe" value="${esc(stg.me)}"></div>
+       <div class="f"><label>他叫</label><input id="sChef" value="${esc(stg.chef)}"></div>
+     </div></div>
+   <button class="bigbtn" id="hExport">📦 导出一份备份</button>
+   <label class="bigbtn" for="hFile" style="display:block;text-align:center">📥 从备份恢复</label>
+   <input type="file" id="hFile" accept="application/json,.json" class="hide">
+   <button class="danger" id="hWipe">清空所有数据(含示范菜)</button>`;
+  $('#hSum').onclick=openSum;
+  const more=$('#tlMore'); if(more)more.onclick=()=>{tlAll=true;$('#tlBox').innerHTML=drawTimeline()};
+  const save=()=>{stg.me=$('#sMe').value.trim()||'兔老板';stg.chef=$('#sChef').value.trim()||'哲哲';persist();render()};
+  $('#sMe').onblur=save; $('#sChef').onblur=save;
+  $('#hExport').onclick=()=>{
+    const blob=new Blob([JSON.stringify({dishes,shops,orders,stg},null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`美少兔食堂-${today()}.json`;a.click();
+    toast('存到下载文件夹了 📦');
+  };
+  $('#hFile').onchange=e=>{
+    const f=e.target.files[0]; e.target.value='';
+    if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const j=JSON.parse(r.result);
+        if(!j||!Array.isArray(j.dishes))throw 0;
+        if(!confirm(`要用这份备份覆盖现在的数据吗?\n菜 ${j.dishes.length} 道 · 店 ${(j.shops||[]).length} 家`))return;
+        dishes=j.dishes; shops=j.shops||[]; orders=j.orders||[]; stg=Object.assign(stg,j.stg||{});
+        persist(); toast('恢复好了 🎉'); setTimeout(()=>location.reload(),700);
+      }catch{ toast('这个文件读不了,换一份试试 😅') }
+    };
+    r.readAsText(f);
+  };
+  $('#hWipe').onclick=()=>{if(!confirm('所有菜、点单记录都会没,确定?'))return;localStorage.clear();location.reload()};
+}
+
+/* ══════════════ 弹层 ══════════════ */
+const openSheet=el=>{$('#mask').classList.add('on');el.classList.add('on');document.body.style.overflow='hidden'};
+const closeSheets=()=>{$('#mask').classList.remove('on');$$('.sheet').forEach(s=>s.classList.remove('on'));document.body.style.overflow=''};
+$('#mask').onclick=closeSheets; $$('.shead .cl').forEach(b=>b.onclick=closeSheets);
+
+/* ── 加菜 / 改菜 ── */
+let editId=null,eSrc='zhe',eSt='done',ePaws=0,eFav=0,eCover='',eTagSel=[];
+const setSrc=s=>{eSrc=s;$$('#eSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  $('#gShop').classList.toggle('hide',s==='zhe'||s==='me')};
+const setSt=s=>{eSt=s;$$('#eStg button').forEach(b=>b.classList.toggle('on',b.dataset.st===s));$('#fPaws').classList.toggle('hide',s==='want')};
+const setPaws=n=>{ePaws=n;$$('#ePaws button').forEach(b=>b.classList.toggle('on',+b.dataset.p<=n));
+  $('#ePawsTxt').textContent=['还没评','emmm','还行','好吃','很好吃','封神了!'][n]};
+const setFav=v=>{eFav=v?1:0;$('#eFav').classList.toggle('on',!!v);$('#eFav').textContent=v?'❤️ 已经是招牌了':'❤️ 设为本店招牌'};
+function setCover(d){
+  eCover=d||'';const p=$('#ePhoto');
+  p.style.backgroundImage=d?`url(${d})`:'';p.classList.toggle('has',!!d);
+  p.querySelector('.ph').style.display=d?'none':'';$('#ePhotoTip').style.display=d?'none':'';
+  let x=p.querySelector('.x');
+  if(d&&!x){x=document.createElement('span');x.className='x';x.textContent='×';
+    x.onclick=e=>{e.preventDefault();e.stopPropagation();setCover('')};p.appendChild(x)}
+  if(!d&&x)x.remove();
+}
+function drawTags(){
+  $('#eTags').innerHTML=TAGS.map(t=>`<button data-t="${t}" class="${eTagSel.includes(t)?'on':''}">${t}</button>`).join('');
+  $$('#eTags button').forEach(b=>b.onclick=()=>{
+    const t=b.dataset.t;
+    eTagSel=eTagSel.includes(t)?eTagSel.filter(x=>x!==t):[...eTagSel,t];
+    b.classList.toggle('on');
+  });
+}
+function openEdit(id,pre,onlyHome){
+  editId=id;const d=id?get(id):(pre||{});
+  $('#eTitle').textContent=id?'改一改':'加一道菜';
+  /* 从「自家厨房」的 ＋ 进来只给两个人选,店那两个不出现 */
+  $$('#eSeg button').forEach(b=>b.classList.toggle('hide',!!onlyHome&&(b.dataset.s==='delivery'||b.dataset.s==='restaurant')));
+  setSrc(d.src||'zhe'); setSt(d.st||'done'); setPaws(d.paws||0); setFav(d.fav||0); setCover(d.cover||'');
+  eTagSel=[...(d.tags||[])]; drawTags();
+  $('#eName').value=d.name||''; $('#eShop').value=d.shop||''; $('#ePrice').value=d.price||'';
+  $('#eNote').value=d.note||'';
+  openSheet($('#shEdit'));
+  if(!id)setTimeout(()=>$('#eName').focus(),340);
+}
+$('#fab').onclick=()=>view==='out'?openShopEdit(null):openEdit(null,null,true);
+$$('#eSeg button').forEach(b=>b.onclick=()=>setSrc(b.dataset.s));
+$$('#eStg button').forEach(b=>b.onclick=()=>setSt(b.dataset.st));
+$$('#ePaws button').forEach(b=>b.onclick=()=>setPaws(ePaws===+b.dataset.p?0:+b.dataset.p));
+$('#eFav').onclick=()=>setFav(!eFav);
+
+function shrink(file,cb,max=1000,q=.72){
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();
+    im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));
+      const c=document.createElement('canvas');c.width=im.width*s|0;c.height=im.height*s|0;
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',q))};
+    im.src=r.result};
+  r.readAsDataURL(file);
+}
+$('#eFile').onchange=e=>{const f=e.target.files[0];if(f)shrink(f,setCover);e.target.value=''};
+
+$('#eSave').onclick=()=>{
+  const name=$('#eName').value.trim();
+  if(!name){toast('给它起个名先 😅');$('#eName').focus();return}
+  const old=editId?get(editId):null;
+  const home=eSrc==='zhe'||eSrc==='me';
+  const shopName=home?'':$('#eShop').value.trim();
+  let shId='';
+  if(shopName){                      // 店名对不上就新开一家,不让菜变孤儿
+    let s=shops.find(x=>x.name===shopName&&x.kind===eSrc);
+    if(!s){s={id:sid(),name:shopName,kind:eSrc,memo:'',avg:+$('#ePrice').value||0,warn:'',visits:[],at:today()};shops.unshift(s)}
+    shId=s.id;
+  }
+  const d={id:editId||uid(),name,src:eSrc,st:eSt,paws:eSt==='want'?0:ePaws,fav:eFav,
+    tags:eTagSel,cover:eCover,note:$('#eNote').value.trim(),
+    shop:shopName,shopId:shId,price:home?0:(+$('#ePrice').value||0),
+    logs:old?old.logs:[],at:old?old.at:today()};
+  if(editId)dishes=dishes.map(x=>x.id===editId?d:x); else dishes.unshift(d);
+  persist();closeSheets();render();toast(editId?'改好了 ✏️':'记下来了 🍽️');
+  if(shId&&view==='out')setTimeout(()=>openShop(shId),120);
+};
+
+/* ── 详情 ── */
+let viewId=null, logPhoto='';
+function openView(id){
+  const d=get(id);if(!d)return;viewId=id;logPhoto='';
+  const inCart=cart.includes(id);
+  const kv=[];
+  if(d.shop)kv.push(['店',d.shop]);
+  if(d.price)kv.push(['价格','¥'+d.price]);
+  kv.push(['谁出品',SRC[d.src].e+' '+nameOf(d.src)],['加进菜单',fmt(d.at)]);
+  $('#vTitle').textContent=d.name;
+  $('#vBody').innerHTML=`
+    <div class="vpic s-${d.src}" style="${pic(d)}">${emo(d)}</div>
+    <div class="vh"><span class="n">${esc(d.name)}</span>${d.fav?'<span style="font-size:20px">❤️</span>':''}</div>
+    <div class="vmeta">${esc(sub(d))}${d.st==='want'?' · 🔖 还没吃到':''}</div>
+    ${d.st==='done'?`<div class="vpaws">${paw(d.paws)||'<span style="font-size:13px;color:var(--ink3)">还没评分</span>'}</div>`:''}
+    ${d.tags&&d.tags.length?`<div class="chips">${d.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+    ${d.note?`<div class="blk"><div class="bl">一句话</div><div class="bv">${esc(d.note)}</div></div>`:''}
+
+    ${d.st==='want'
+      ? `<button class="bigbtn blue" id="vDone">✅ 吃到了!挪过去</button>`
+      : homemade(d)
+        ? `<button class="bigbtn ${inCart?'':'pink'}" id="vCart">${inCart?'✓ 已经点了,再点一下拿掉':'＋ 想吃这个,加进点单'}</button>`
+        : (d.shopId&&shopOf(d.shopId)?`<button class="bigbtn pink" id="vShop">🛵 去看「${esc(shopOf(d.shopId).name)}」</button>`:'')}
+
+    <div class="blk"><div class="bl">📝 后来又… <span style="font-weight:400">(想法和照片都往这儿加,不占新的一条)</span></div>
+      ${d.logs&&d.logs.length?d.logs.slice().reverse().map(l=>`<div class="logitem">
+          ${l.photo?`<div class="li" style="background-image:url(${l.photo})"></div>`:''}
+          <div class="lc"><div class="ld">${fmt(l.date)}</div><div class="lt">${esc(l.text)}</div></div>
+          <button class="lx" data-dl="${l.id}">×</button></div>`).join('')
+        :`<div style="color:var(--ink3);font-size:13px;padding:4px 0">还没有。下次再做,或者你有新想法,就记在这儿</div>`}
+      <div class="addlog">
+        <label class="cam" for="logFile" id="logCam">📷</label>
+        <input type="file" id="logFile" accept="image/*" class="hide">
+        <textarea id="logText" placeholder="这次加了小米辣,更好吃了"></textarea>
+        <button class="go" id="logGo">记一笔</button>
+      </div></div>
+
+    <div class="blk">${kv.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
+    <button class="danger" id="vDel">从菜单里删掉</button>`;
+
+  const c=$('#vCart'); if(c)c.onclick=()=>{toggleCart(id);openView(id)};
+  const vs=$('#vShop'); if(vs)vs.onclick=()=>{const s=d.shopId;closeSheets();setTimeout(()=>openShop(s),270)};
+  const dn=$('#vDone'); if(dn)dn.onclick=()=>{d.st='done';persist();render();openView(id);toast('恭喜吃到 🎉 记得评猫爪')};
+  $('#logFile').onchange=e=>{const f=e.target.files[0];if(f)shrink(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent=''},700);e.target.value=''};
+  $('#logGo').onclick=()=>{
+    const t=$('#logText').value.trim();
+    if(!t&&!logPhoto){toast('写点什么或者放张图 🐾');return}
+    d.logs=d.logs||[];d.logs.push({id:'l'+Math.random().toString(36).slice(2,7),date:today(),text:t,photo:logPhoto});
+    if(logPhoto&&!d.cover)d.cover=logPhoto;
+    persist();openView(id);render();toast('记上了 ✏️');
+  };
+  $('#vBody').querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{
+    d.logs=d.logs.filter(l=>l.id!==b.dataset.dl);persist();openView(id);
+  });
+  $('#vDel').onclick=()=>{if(!confirm(`把「${d.name}」从菜单删掉?`))return;
+    dishes=dishes.filter(x=>x.id!==id);cart=cart.filter(x=>x!==id);persist();closeSheets();render();toast('删了')};
+  openSheet($('#shView'));
+}
+$('#vEditBtn').onclick=()=>{const id=viewId;closeSheets();setTimeout(()=>openEdit(id),270)};
+
+/* ── 店详情 ── */
+let curShop=null;
+function openShop(id){
+  const s=shopOf(id); if(!s)return; curShop=id;
+  const {ds,last}=shopStats(s);
+  const sorted=[...ds].sort((a,b)=>(b.paws||0)-(a.paws||0));
+  const wants=shopDishes(id).filter(d=>d.st==='want');
+  const meta=[s.visits.length?`去过 ${s.visits.length} 次`:'还没去过'];
+  if(last)meta.push('上次 '+fmt(last));
+  if(s.avg)meta.push('人均 ¥'+s.avg);
+  $('#svTitle').textContent=s.name;
+  $('#svBody').innerHTML=`
+   <div class="vh"><span class="n">${SRC[s.kind].e} ${esc(s.name)}</span></div>
+   <div class="vmeta">${esc(meta.join(' · '))}</div>
+   ${s.warn?`<div class="blk"><div class="bl">⚠️ 避雷</div><div class="bv">${esc(s.warn)}</div></div>`:''}
+   <div class="blk"><div class="bl">📝 下单备注</div>
+     <div class="bv">${s.memo?esc(s.memo):'<span style="color:var(--ink3)">还没写。点右上角「改」加一句,下次点的时候照着抄</span>'}</div>
+     ${s.memo?`<button class="bigbtn" id="svCopy" style="margin:12px 0 0;padding:11px">📋 复制备注</button>`:''}
+   </div>
+   <button class="bigbtn pink" id="svVisit">✅ 今天吃了这家</button>
+   <div class="blk"><div class="bl">🍽️ 我们点过的 <span style="font-weight:400">(${ds.length} 道)</span></div>
+     ${sorted.length?sorted.map(d=>`<div class="drow" data-d="${d.id}">
+        <span class="n">${esc(d.name)}${d.fav?' ❤️':''}${d.note?`<small>${esc(d.note)}</small>`:''}</span>
+        <span class="v">${paw(d.paws)||'还没评'}</span></div>`).join('')
+      :`<div style="color:var(--ink3);font-size:13px;padding:4px 0">还没记过这家的菜。点了什么好吃的就加一道 🐾</div>`}
+     ${wants.length?wants.map(d=>`<div class="drow" data-d="${d.id}">
+        <span class="n">🔖 ${esc(d.name)}</span><span class="v">还没点过</span></div>`).join(''):''}
+   </div>
+   <button class="bigbtn" id="svAdd">＋ 加一道这家的菜</button>
+   <button class="danger" id="svDel">删掉这家店</button>`;
+  const cp=$('#svCopy');
+  if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(s.memo);toast('备注复制好了 📋')}catch{toast('复制失败,自己抄一下 😅')}};
+  $('#svVisit').onclick=()=>{s.visits.push(today());persist();render();openShop(id);toast(`记下啦,今天吃了 ${s.name} 🐾`)};
+  $('#svAdd').onclick=()=>{closeSheets();setTimeout(()=>openEdit(null,{src:s.kind,shop:s.name,price:s.avg}),270)};
+  $('#svDel').onclick=()=>{
+    const n=shopDishes(id).length;
+    if(!confirm(`删掉「${s.name}」?${n?`它下面 ${n} 道菜也会一起没。`:''}`))return;
+    dishes=dishes.filter(d=>d.shopId!==id); shops=shops.filter(x=>x.id!==id);
+    persist();closeSheets();render();toast('删了');
+  };
+  $('#svBody').querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>{closeSheets();setTimeout(()=>openView(el.dataset.d),270)});
+  openSheet($('#shShop'));
+}
+$('#svEdit').onclick=()=>{const id=curShop;closeSheets();setTimeout(()=>openShopEdit(id),270)};
+
+/* ── 加店 / 改店 ── */
+let seId=null, seKind='delivery';
+const setSeKind=k=>{seKind=k;$$('#seSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===k))};
+$$('#seSeg button').forEach(b=>b.onclick=()=>setSeKind(b.dataset.s));
+function openShopEdit(id){
+  seId=id; const s=(id&&shopOf(id))||{};
+  $('#seTitle').textContent=id?'改这家店':'加一家店';
+  setSeKind(s.kind||(fOut==='restaurant'?'restaurant':'delivery'));
+  $('#seName').value=s.name||''; $('#seMemo').value=s.memo||'';
+  $('#seAvg').value=s.avg||''; $('#seWarn').value=s.warn||'';
+  openSheet($('#shShopEdit'));
+  if(!id)setTimeout(()=>$('#seName').focus(),340);
+}
+$('#seSave').onclick=()=>{
+  const name=$('#seName').value.trim();
+  if(!name){toast('给它起个名先 😅');$('#seName').focus();return}
+  const f={name,kind:seKind,memo:$('#seMemo').value.trim(),avg:+$('#seAvg').value||0,warn:$('#seWarn').value.trim()};
+  if(seId){
+    const s=shopOf(seId); Object.assign(s,f);
+    shopDishes(seId).forEach(d=>{d.shop=name;d.src=seKind});   // 菜跟着店走
+  }else shops.unshift({id:sid(),...f,visits:[],at:today()});
+  persist();closeSheets();render();toast(seId?'改好了 ✏️':'收录了 🛵');
+};
+
+/* ── 摇一摇(跟着当前这一格 + 当前筛选走) ── */
+const SAYS=['喵~ 我觉得今天该吃这个','闭着眼睛给你挑的','三三也想吃这个','就它了,别纠结啦','十九帮你决定好了'];
+function roll(){
+  const box=$('#rollBody'), cat=Math.random()<.5?'toshi':'sansan';
+  const say=SAYS[Math.floor(Math.random()*SAYS.length)];
+  const head=t=>`<div class="rollbox"><img class="rimg" src="img/${cat}-head.png"><div class="say">${t}</div>`;
+  const nope=t=>{box.innerHTML=head(t)+'</div>';openSheet($('#shRoll'))};
+
+  if(view==='out'){
+    $('#shRoll .ti').textContent=fOut==='restaurant'?'今天去哪家':fOut==='delivery'?'今天点哪家':'今天吃哪家';
+    const pool=shops.filter(s=>fOut==='all'||s.kind===fOut);
+    if(!pool.length)return nope('这一类还没有店可以摇 😿');
+    const s=pool[Math.floor(Math.random()*pool.length)];
+    const {must,last}=shopStats(s);
+    const line=[];
+    if(s.visits.length)line.push(`去过 ${s.visits.length} 次`); if(last)line.push('上次 '+fmt(last));
+    if(s.avg)line.push('人均 ¥'+s.avg);
+    box.innerHTML=head(say)+`
+       <div class="big">${esc(s.name)}</div>
+       <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${SRC[s.kind].e} ${esc(line.join(' · ')||'还没去过')}</div>
+       ${must?`<div style="font-size:14px;margin-bottom:4px">⭐ 必点 ${esc(must.name)} ${paw(must.paws)}</div>`:''}
+       ${s.memo?`<div style="font-size:13px;color:var(--ink2);margin-bottom:4px">📝 ${esc(s.memo)}</div>`:''}
+       ${s.warn?`<div style="font-size:13px;color:#d9866f;margin-bottom:4px">⚠️ ${esc(s.warn)}</div>`:''}
+       <div style="height:14px"></div></div>
+     <button class="bigbtn pink" id="rollGo">✅ 就它了</button>
+     <button class="bigbtn" id="rollOpen">看看这家</button>`;
+    $('#rollGo').onclick=()=>{s.visits.push(today());persist();render();closeSheets();toast(`记下啦,今天吃 ${s.name} 🐾`)};
+    $('#rollOpen').onclick=()=>{closeSheets();setTimeout(()=>openShop(s.id),270)};
+  }else{
+    $('#shRoll .ti').textContent='今天让他做啥';
+    const pool=dishes.filter(d=>homemade(d)&&d.st==='done'&&(fKit==='all'||fKit==='want'||d.src===fKit));
+    if(!pool.length)return nope('厨房里还没菜可以摇 😿');
+    const d=pool[Math.floor(Math.random()*pool.length)];
+    box.innerHTML=head(say)+`
+       <div class="big">${esc(d.name)}</div>
+       <div style="font-size:13px;color:var(--ink2);margin-bottom:4px">${SRC[d.src].e} ${esc(nameOf(d.src))}${d.note?' · '+esc(d.note):''}</div>
+       <div style="font-size:15px;margin-bottom:16px">${paw(d.paws)}</div></div>
+     <button class="bigbtn pink" id="rollAdd">＋ 就它了,加进点单</button>`;
+    $('#rollAdd').onclick=()=>{if(!cart.includes(d.id)){cart.push(d.id);persist();render()}closeSheets();toast(`「${d.name}」加进点单了 🐾`)};
+  }
+  openSheet($('#shRoll'));
+}
+$('#dice').onclick=roll; $('#rollAgain').onclick=roll;
+
+/* ══════════════ 启动 ══════════════ */
+$$('nav b').forEach(b=>b.onclick=()=>{view=b.dataset.v;scrollTo(0,0);render()});
+$('#cartBar').onclick=openOrder;
+persist(); render();
+</script>
+</body>
+</html>
