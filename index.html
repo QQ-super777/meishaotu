@@ -1051,7 +1051,10 @@ function openShop(id){
    <button class="bigbtn pink" id="svVisit">✅ 今天吃了这家</button>
    <div class="f" style="margin:-4px 0 12px">
      <label>补记以前的某一天</label>
-     <input type="date" id="svBack" max="${today()}">
+     <div style="display:flex;gap:8px;align-items:center">
+       <input type="date" id="svBack" max="${today()}" style="flex:1;min-width:0">
+       <button class="togg" id="svBackGo" style="width:auto;flex:0 0 auto;padding:12px 16px">补上</button>
+     </div>
    </div>
    ${s.visits.length?`<div class="blk"><div class="bl">📅 去过的日子 <span style="font-weight:400">(记错了点 × 删掉)</span></div>
      ${[...s.visits].map((v,i)=>({v,i})).sort((a,b)=>b.v.localeCompare(a.v)).map(({v,i})=>
@@ -1073,9 +1076,10 @@ function openShop(id){
   const cp=$('#svCopy');
   if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(s.memo);toast('备注复制好了 📋')}catch{toast('复制失败,自己抄一下 😅')}};
   $('#svVisit').onclick=()=>{s.visits.push(today());persist();render();openShop(id);toast(`记下啦,今天吃了 ${s.name} 🐾`)};
-  $('#svBack').onchange=e=>{
-    const d=e.target.value; if(!d)return;
-    if(d>today()){toast('还没到那天呢 😅');e.target.value='';return}
+  $('#svBackGo').onclick=()=>{
+    const d=$('#svBack').value;
+    if(!d){toast('先选个日子 📅');return}
+    if(d>today()){toast('还没到那天呢 😅');return}
     s.visits.push(d);persist();render();openShop(id);toast(`补上了:${fmt(d)}吃的 🐾`);
   };
   $('#svBody').querySelectorAll('[data-rmv]').forEach(b=>b.onclick=ev=>{
