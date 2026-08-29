@@ -497,7 +497,7 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 
 <!-- 裁成正方形 -->
 <div class="sheet" id="shCrop">
-  <div class="shead"><button class="cl">取消</button><div class="ti">裁成正方形</div><button class="pri" id="cpOk">好了</button></div>
+  <div class="shead"><button class="cl" id="cpCancel">取消</button><div class="ti">裁成正方形</div><button class="pri" id="cpOk">好了</button></div>
   <div class="sbody">
     <div class="crop" id="cpBox"><img id="cpImg" alt=""></div>
     <div class="zoomrow"><span style="font-size:15px">🔍</span>
@@ -971,8 +971,11 @@ function rHome(){
 
 /* ══════════════ 弹层 ══════════════ */
 const openSheet=el=>{$('#mask').classList.add('on');el.classList.add('on');document.body.style.overflow='hidden'};
+const closeOne=el=>el.classList.remove('on');
 const closeSheets=()=>{$('#mask').classList.remove('on');$$('.sheet').forEach(s=>s.classList.remove('on'));document.body.style.overflow=''};
-$('#mask').onclick=closeSheets; $$('.shead .cl').forEach(b=>b.onclick=closeSheets);
+$('#mask').onclick=closeSheets;
+$$('.shead .cl').forEach(b=>b.onclick=closeSheets);
+$('#cpCancel').onclick=e=>{e.stopPropagation();cp.cb=null;closeOne($('#shCrop'))};
 
 /* ── 加菜 / 改菜 ── */
 let editId=null,eSrc='zhe',eSt='done',ePaws=0,eFav=0,eCover='',eTagSel=[];
@@ -1081,11 +1084,11 @@ $('#cpZoom').oninput=e=>{
   box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
 })();
 $('#cpOk').onclick=()=>{
-  if(!cp.img||!cp.cb)return closeSheets();
+  if(!cp.img||!cp.cb)return closeOne($('#shCrop'));
   const k=cp.base*cp.zoom, S=cp.out;
   const c=document.createElement('canvas'); c.width=S; c.height=S;
   c.getContext('2d').drawImage(cp.img, -cp.x/k, -cp.y/k, cp.box/k, cp.box/k, 0, 0, S, S);
-  const cb=cp.cb; cp.cb=null; closeSheets(); cb(c.toDataURL('image/jpeg',.82));
+  const cb=cp.cb; cp.cb=null; closeOne($('#shCrop')); cb(c.toDataURL('image/jpeg',.82));
 };
 
 $('#eFile').onchange=e=>{const f=e.target.files[0];if(f)openCrop(f,setCover,900);e.target.value=''};
@@ -1159,7 +1162,7 @@ function openView(id){
   const vs=$('#vShop'); if(vs)vs.onclick=()=>{const s=d.shopId;closeSheets();setTimeout(()=>openShop(s),270)};
   const dn=$('#vDone'); if(dn)dn.onclick=()=>{d.st='done';persist();render();openView(id);toast('恭喜吃到 🎉 记得评猫爪')};
   $('#logFile').onchange=e=>{const f=e.target.files[0];
-    if(f)openCrop(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent='';openSheet($('#shView'))},700);
+    if(f)openCrop(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent=''},700);
     e.target.value=''};
   $('#logGo').onclick=()=>{
     const t=$('#logText').value.trim();
