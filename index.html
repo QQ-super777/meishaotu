@@ -891,7 +891,8 @@ function rHome(){
        <div class="f"><label>他叫</label><input id="sChef" value="${esc(stg.chef)}"></div>
      </div></div>
    <button class="bigbtn" id="hExport">📦 导出一份备份</button>
-   <label class="bigbtn" for="hFile" style="display:block;text-align:center">📥 导入 / 从备份恢复</label>
+   <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
+   <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
    <button class="danger" id="hWipe">清空所有数据</button>`;
   $('#hSum').onclick=openSum;
@@ -903,53 +904,63 @@ function rHome(){
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`美少兔食堂-${today()}.json`;a.click();
     toast('存到下载文件夹了 📦');
   };
+  /* 合并导入:文件和「网上拉」共用 */
+  function importData(j){
+    if(!j||!Array.isArray(j.dishes))throw 0;
+        const nd=j.dishes.length, ns=(j.shops||[]).length;
+    const merge = dishes.length||shops.length
+      ? confirm(`这份数据:菜 ${nd} 道 · 店 ${ns} 家\n\n【确定】= 并到现在的数据里(推荐)\n【取消】= 先别导,我再想想`)
+      : true;
+    if(!merge)return;
+    if(dishes.length||shops.length){
+      /* 合并:同名同类的店算一家,访问日期去重;同名同来源的菜不重复加 */
+      const key=x=>(x.name||'').trim()+'|'+x.kind;
+      const map=new Map(shops.map(x=>[key(x),x]));
+      const idmap={};
+      (j.shops||[]).forEach(ns2=>{
+        const hit=map.get(key(ns2));
+        if(hit){
+          idmap[ns2.id]=hit.id;
+          hit.visits=[...new Set([...(hit.visits||[]),...(ns2.visits||[])])];
+          if(!hit.memo&&ns2.memo)hit.memo=ns2.memo;
+          if(!hit.warn&&ns2.warn)hit.warn=ns2.warn;
+          if(!hit.avg&&ns2.avg)hit.avg=ns2.avg;
+        }else{
+          const id2=sid(); idmap[ns2.id]=id2;
+          const cp2={...ns2,id:id2,visits:[...new Set(ns2.visits||[])],at:ns2.at||today()};
+          shops.push(cp2); map.set(key(cp2),cp2);
+        }
+      });
+      const dkey=d=>(d.name||'').trim()+'|'+d.src+'|'+(d.shopId||'');
+      const have=new Set(dishes.map(dkey));
+      j.dishes.forEach(nd2=>{
+        const c={...nd2,id:uid(),shopId:nd2.shopId?(idmap[nd2.shopId]||''):''};
+        if(have.has(dkey(c)))return;
+        have.add(dkey(c)); dishes.push(c);
+      });
+      orders=[...orders,...(j.orders||[])];
+    }else{
+      dishes=j.dishes; shops=j.shops||[]; orders=j.orders||[]; stg=Object.assign(stg,j.stg||{});
+    }
+    persist(); toast('导进来了 🎉'); setTimeout(()=>location.reload(),700);
+  }
   $('#hFile').onchange=e=>{
     const f=e.target.files[0]; e.target.value='';
     if(!f)return;
     const r=new FileReader();
-    r.onload=()=>{
-      try{
-        const j=JSON.parse(r.result);
-        if(!j||!Array.isArray(j.dishes))throw 0;
-        const nd=j.dishes.length, ns=(j.shops||[]).length;
-        const merge = dishes.length||shops.length
-          ? confirm(`这份数据:菜 ${nd} 道 · 店 ${ns} 家\n\n【确定】= 并到现在的数据里(推荐)\n【取消】= 先别导,我再想想`)
-          : true;
-        if(!merge)return;
-        if(dishes.length||shops.length){
-          /* 合并:同名同类的店算一家,访问日期去重;同名同来源的菜不重复加 */
-          const key=x=>(x.name||'').trim()+'|'+x.kind;
-          const map=new Map(shops.map(x=>[key(x),x]));
-          const idmap={};
-          (j.shops||[]).forEach(ns2=>{
-            const hit=map.get(key(ns2));
-            if(hit){
-              idmap[ns2.id]=hit.id;
-              hit.visits=[...new Set([...(hit.visits||[]),...(ns2.visits||[])])];
-              if(!hit.memo&&ns2.memo)hit.memo=ns2.memo;
-              if(!hit.warn&&ns2.warn)hit.warn=ns2.warn;
-              if(!hit.avg&&ns2.avg)hit.avg=ns2.avg;
-            }else{
-              const id2=sid(); idmap[ns2.id]=id2;
-              const cp2={...ns2,id:id2,visits:[...new Set(ns2.visits||[])],at:ns2.at||today()};
-              shops.push(cp2); map.set(key(cp2),cp2);
-            }
-          });
-          const dkey=d=>(d.name||'').trim()+'|'+d.src+'|'+(d.shopId||'');
-          const have=new Set(dishes.map(dkey));
-          j.dishes.forEach(nd2=>{
-            const c={...nd2,id:uid(),shopId:nd2.shopId?(idmap[nd2.shopId]||''):''};
-            if(have.has(dkey(c)))return;
-            have.add(dkey(c)); dishes.push(c);
-          });
-          orders=[...orders,...(j.orders||[])];
-        }else{
-          dishes=j.dishes; shops=j.shops||[]; orders=j.orders||[]; stg=Object.assign(stg,j.stg||{});
-        }
-        persist(); toast('导进来了 🎉'); setTimeout(()=>location.reload(),700);
-      }catch{ toast('这个文件读不了,换一份试试 😅') }
-    };
+    r.onload=()=>{ try{ importData(JSON.parse(r.result)) }catch{ toast('这个文件读不了,换一份试试 😅') } };
     r.readAsText(f);
+  };
+  /* 小小七在电脑上整理好的数据,放在同一个网址下,点一下直接拉进来 */
+  $('#hPull').onclick=async()=>{
+    const btn=$('#hPull'); btn.textContent='拉取中…';
+    try{
+      const r=await fetch('./inbox.json?t='+Date.now(),{cache:'no-store'});
+      if(!r.ok)throw 0;
+      const j=await r.json();
+      if(!j.dishes||!j.dishes.length){toast('暂时没有待导入的 🐾');btn.textContent='📥 拉一批小小七整理好的';return}
+      importData(j);
+    }catch{ toast('拉不到,可能没网 😿'); btn.textContent='📥 拉一批小小七整理好的'; }
   };
   $('#hWipe').onclick=()=>{
     if(!confirm('所有菜、店、点单记录都会没,确定?'))return;
