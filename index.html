@@ -525,6 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
+const BUILD='0830-0120';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -894,7 +895,8 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
-   <button class="danger" id="hWipe">清空所有数据</button>`;
+   <button class="danger" id="hWipe">清空所有数据</button>
+   <div style="text-align:center;color:var(--ink3);font-size:11px;padding:10px 0 4px">版本 ${BUILD}</div>`;
   $('#hSum').onclick=openSum;
   const more=$('#tlMore'); if(more)more.onclick=()=>{tlAll=true;$('#tlBox').innerHTML=drawTimeline()};
   const save=()=>{stg.me=$('#sMe').value.trim()||'兔老板';stg.chef=$('#sChef').value.trim()||'哲哲';persist();render()};
