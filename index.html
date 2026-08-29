@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-0140';
+const BUILD='0830-0145';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -759,12 +759,6 @@ function renderOrder(){
         <textarea id="oMsg" placeholder="今晚可以吗?我洗碗 🙏">${esc(pendingMsg)}</textarea></div>
       <button class="bigbtn pink" id="oMake">🧾 出小票</button>
       <button class="bigbtn" id="oClear">清空点单</button>`;
-  }
-  if(orders.length){
-    h+=`<div class="sect"><span class="t">📮 点过的单</span></div>`;
-    h+=orders.slice(0,12).map(o=>`<div class="order" data-o="${o.id}">
-      <div class="od">${fmt(o.at)} · ${o.items.length} 道</div>
-      <div class="on2">${o.items.map(i=>esc(i.name)).join('、')}</div></div>`).join('');
   }
   box.innerHTML=h;
   box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>toggleCart(b.dataset.rm));
