@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-0120';
+const BUILD='0830-0140';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -718,7 +718,7 @@ function rKitchen(){
     h+=`<div class="sect"><span class="t">🔖 待尝试</span><span class="n">${wants.length} 道</span></div>
         <div class="grid">${wants.map(card).join('')}</div>`;
   }
-  h+=`<button class="bigbtn" id="kOrder" style="margin-top:18px">🧾 点单${orders.length?` · 点过 ${orders.length} 张小票`:''}</button>`;
+  h+=`<button class="bigbtn" id="kOrder" style="margin-top:18px">🧾 点单</button>`;
   box.innerHTML=h;
   box.querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>openView(el.dataset.id));
   box.querySelectorAll('[data-add]').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleCart(b.dataset.add)});
@@ -761,7 +761,7 @@ function renderOrder(){
       <button class="bigbtn" id="oClear">清空点单</button>`;
   }
   if(orders.length){
-    h+=`<div class="sect"><span class="t">📮 点过的单</span><span class="n">${orders.length} 张</span></div>`;
+    h+=`<div class="sect"><span class="t">📮 点过的单</span></div>`;
     h+=orders.slice(0,12).map(o=>`<div class="order" data-o="${o.id}">
       <div class="od">${fmt(o.at)} · ${o.items.length} 道</div>
       <div class="on2">${o.items.map(i=>esc(i.name)).join('、')}</div></div>`).join('');
