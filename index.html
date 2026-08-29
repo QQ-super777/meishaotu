@@ -998,6 +998,10 @@ function openView(id){
         <input type="file" id="logFile" accept="image/*" class="hide">
         <textarea id="logText" placeholder="这次加了小米辣,更好吃了"></textarea>
         <button class="go" id="logGo">记一笔</button>
+      </div>
+      <div class="f" style="margin:10px 0 0">
+        <label>哪天的事(不填就是今天)</label>
+        <input type="date" id="logDate" max="${today()}">
       </div></div>
 
     <div class="blk">${kv.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
@@ -1010,7 +1014,9 @@ function openView(id){
   $('#logGo').onclick=()=>{
     const t=$('#logText').value.trim();
     if(!t&&!logPhoto){toast('写点什么或者放张图 🐾');return}
-    d.logs=d.logs||[];d.logs.push({id:'l'+Math.random().toString(36).slice(2,7),date:today(),text:t,photo:logPhoto});
+    let dt=($('#logDate')&&$('#logDate').value)||today();
+    if(dt>today())dt=today();
+    d.logs=d.logs||[];d.logs.push({id:'l'+Math.random().toString(36).slice(2,7),date:dt,text:t,photo:logPhoto});
     if(logPhoto&&!d.cover)d.cover=logPhoto;
     persist();openView(id);render();toast('记上了 ✏️');
   };
@@ -1043,6 +1049,15 @@ function openShop(id){
      ${s.memo?`<button class="bigbtn" id="svCopy" style="margin:12px 0 0;padding:11px">📋 复制备注</button>`:''}
    </div>
    <button class="bigbtn pink" id="svVisit">✅ 今天吃了这家</button>
+   <div class="f" style="margin:-4px 0 12px">
+     <label>补记以前的某一天</label>
+     <input type="date" id="svBack" max="${today()}">
+   </div>
+   ${s.visits.length?`<div class="blk"><div class="bl">📅 去过的日子 <span style="font-weight:400">(记错了点 × 删掉)</span></div>
+     ${[...s.visits].map((v,i)=>({v,i})).sort((a,b)=>b.v.localeCompare(a.v)).map(({v,i})=>
+       `<div class="kv"><span class="v">${fmt(v)}<span style="color:var(--ink3);font-size:11.5px"> ${v}</span></span>
+        <button class="lx" data-rmv="${i}" style="color:var(--ink3);font-size:17px">×</button></div>`).join('')}
+   </div>`:''}
    <div class="blk"><div class="bl">🍽️ 我们点过的 <span style="font-weight:400">(${ds.length} 道)</span></div>
      ${sorted.length?sorted.map(d=>`<div class="drow" data-d="${d.id}">
         <span class="dp s-${d.src}" style="${pic(d)}">${emo(d)}</span>
@@ -1058,6 +1073,15 @@ function openShop(id){
   const cp=$('#svCopy');
   if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(s.memo);toast('备注复制好了 📋')}catch{toast('复制失败,自己抄一下 😅')}};
   $('#svVisit').onclick=()=>{s.visits.push(today());persist();render();openShop(id);toast(`记下啦,今天吃了 ${s.name} 🐾`)};
+  $('#svBack').onchange=e=>{
+    const d=e.target.value; if(!d)return;
+    if(d>today()){toast('还没到那天呢 😅');e.target.value='';return}
+    s.visits.push(d);persist();render();openShop(id);toast(`补上了:${fmt(d)}吃的 🐾`);
+  };
+  $('#svBody').querySelectorAll('[data-rmv]').forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation();
+    s.visits.splice(+b.dataset.rmv,1);persist();render();openShop(id);toast('这次去掉了');
+  });
   $('#svAdd').onclick=()=>{closeSheets();setTimeout(()=>openEdit(null,{src:s.kind,shop:s.name,price:s.avg}),270)};
   $('#svDel').onclick=()=>{
     const n=shopDishes(id).length;
