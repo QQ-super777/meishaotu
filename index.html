@@ -1138,6 +1138,11 @@ $('#dice').onclick=roll; $('#rollAgain').onclick=roll;
 $$('nav b').forEach(b=>b.onclick=()=>{view=b.dataset.v;scrollTo(0,0);render()});
 $('#cartBar').onclick=openOrder;
 persist(); render();
+
+/* 离线缓存:装一次,以后 github 连不上也能开 */
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>
