@@ -20,6 +20,7 @@
   --sh2:0 8px 22px rgba(255,150,180,.24);
   --shup:0 -3px 16px rgba(255,150,180,.13);
 }
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
@@ -199,7 +200,7 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 .togg.on{background:var(--hot);color:#fff;box-shadow:0 4px 13px rgba(255,140,175,.34)}
 
 /* ───── 详情 ───── */
-.vpic{height:212px;border-radius:24px;box-shadow:var(--sh2);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:62px;margin-bottom:15px}
+.vpic{aspect-ratio:1/1;width:100%;border-radius:24px;box-shadow:var(--sh2);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:62px;margin-bottom:15px}
 .vh{display:flex;align-items:center;gap:9px}
 .vh .n{font-size:23px;font-weight:700;flex:1;min-width:0}
 .vmeta{color:var(--ink2);font-size:13px;margin:3px 0 8px}
@@ -324,7 +325,8 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
   max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .dish .heart{top:auto;right:auto;bottom:10px;left:10px}
-.drow{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1.5px dashed #f6dde6;cursor:pointer}
+.drow .dp{width:56px;height:56px;flex:0 0 auto;border-radius:16px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 8px rgba(255,150,180,.18)}
+.drow{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1.5px dashed #f6dde6;cursor:pointer}
 .drow:last-child{border:0;padding-bottom:2px}
 .drow .n{flex:1;min-width:0;font-weight:700;font-size:14.5px;line-height:1.45}
 .drow .n small{display:block;font-weight:400;font-size:11.5px;color:var(--ink2);line-height:1.5}
@@ -1043,10 +1045,12 @@ function openShop(id){
    <button class="bigbtn pink" id="svVisit">✅ 今天吃了这家</button>
    <div class="blk"><div class="bl">🍽️ 我们点过的 <span style="font-weight:400">(${ds.length} 道)</span></div>
      ${sorted.length?sorted.map(d=>`<div class="drow" data-d="${d.id}">
+        <span class="dp s-${d.src}" style="${pic(d)}">${emo(d)}</span>
         <span class="n">${esc(d.name)}${d.fav?' ❤️':''}${d.note?`<small>${esc(d.note)}</small>`:''}</span>
         <span class="v">${paw(d.paws)||'还没评'}</span></div>`).join('')
       :`<div style="color:var(--ink3);font-size:13px;padding:4px 0">还没记过这家的菜。点了什么好吃的就加一道 🐾</div>`}
      ${wants.length?wants.map(d=>`<div class="drow" data-d="${d.id}">
+        <span class="dp s-${d.src}" style="${pic(d)}">${emo(d)}</span>
         <span class="n">🔖 ${esc(d.name)}</span><span class="v">还没点过</span></div>`).join(''):''}
    </div>
    <button class="bigbtn" id="svAdd">＋ 加一道这家的菜</button>
