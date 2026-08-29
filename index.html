@@ -303,6 +303,14 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 .rollbox .say{font-size:14px;color:var(--ink2);margin-bottom:14px;font-weight:600}
 .rollbox .big{font-size:31px;font-weight:700;margin-bottom:4px}
 
+.crop{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:24px;
+  background:#f7eef3;touch-action:none;box-shadow:var(--sh2);cursor:grab}
+.crop img{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;user-select:none;-webkit-user-drag:none}
+.crop::after{content:"";position:absolute;inset:0;border-radius:24px;pointer-events:none;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
+.zoomrow{display:flex;align-items:center;gap:10px;background:#fff;border-radius:18px;padding:11px 15px;
+  box-shadow:0 2px 8px rgba(255,150,180,.13);margin-top:14px}
+.zoomrow input{flex:1;min-width:0;accent-color:var(--hot)}
 .toast{
   position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 114px);transform:translateX(-50%) translateY(10px);
   background:rgba(120,70,90,.94);color:#fff;padding:11px 21px;border-radius:24px;font-size:13.5px;font-weight:600;
@@ -485,6 +493,18 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 <div class="sheet" id="shSum">
   <div class="shead"><button class="cl">关闭</button><div class="ti">本月小结</div><span style="min-width:46px"></span></div>
   <div class="sbody" id="sumBody"></div>
+</div>
+
+<!-- 裁成正方形 -->
+<div class="sheet" id="shCrop">
+  <div class="shead"><button class="cl">取消</button><div class="ti">裁成正方形</div><button class="pri" id="cpOk">好了</button></div>
+  <div class="sbody">
+    <div class="crop" id="cpBox"><img id="cpImg" alt=""></div>
+    <div class="zoomrow"><span style="font-size:15px">🔍</span>
+      <input type="range" id="cpZoom" min="1" max="3.5" step="0.01" value="1"></div>
+    <div style="text-align:center;color:var(--ink2);font-size:12.5px;margin-top:10px">
+      拖动图片挪位置 · 拉滑块放大 · 框里的部分就是最后的样子</div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -871,7 +891,7 @@ function rHome(){
        <div class="f"><label>他叫</label><input id="sChef" value="${esc(stg.chef)}"></div>
      </div></div>
    <button class="bigbtn" id="hExport">📦 导出一份备份</button>
-   <label class="bigbtn" for="hFile" style="display:block;text-align:center">📥 从备份恢复</label>
+   <label class="bigbtn" for="hFile" style="display:block;text-align:center">📥 导入 / 从备份恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
    <button class="danger" id="hWipe">清空所有数据</button>`;
   $('#hSum').onclick=openSum;
@@ -891,9 +911,42 @@ function rHome(){
       try{
         const j=JSON.parse(r.result);
         if(!j||!Array.isArray(j.dishes))throw 0;
-        if(!confirm(`要用这份备份覆盖现在的数据吗?\n菜 ${j.dishes.length} 道 · 店 ${(j.shops||[]).length} 家`))return;
-        dishes=j.dishes; shops=j.shops||[]; orders=j.orders||[]; stg=Object.assign(stg,j.stg||{});
-        persist(); toast('恢复好了 🎉'); setTimeout(()=>location.reload(),700);
+        const nd=j.dishes.length, ns=(j.shops||[]).length;
+        const merge = dishes.length||shops.length
+          ? confirm(`这份数据:菜 ${nd} 道 · 店 ${ns} 家\n\n【确定】= 并到现在的数据里(推荐)\n【取消】= 先别导,我再想想`)
+          : true;
+        if(!merge)return;
+        if(dishes.length||shops.length){
+          /* 合并:同名同类的店算一家,访问日期去重;同名同来源的菜不重复加 */
+          const key=x=>(x.name||'').trim()+'|'+x.kind;
+          const map=new Map(shops.map(x=>[key(x),x]));
+          const idmap={};
+          (j.shops||[]).forEach(ns2=>{
+            const hit=map.get(key(ns2));
+            if(hit){
+              idmap[ns2.id]=hit.id;
+              hit.visits=[...new Set([...(hit.visits||[]),...(ns2.visits||[])])];
+              if(!hit.memo&&ns2.memo)hit.memo=ns2.memo;
+              if(!hit.warn&&ns2.warn)hit.warn=ns2.warn;
+              if(!hit.avg&&ns2.avg)hit.avg=ns2.avg;
+            }else{
+              const id2=sid(); idmap[ns2.id]=id2;
+              const cp2={...ns2,id:id2,visits:[...new Set(ns2.visits||[])],at:ns2.at||today()};
+              shops.push(cp2); map.set(key(cp2),cp2);
+            }
+          });
+          const dkey=d=>(d.name||'').trim()+'|'+d.src+'|'+(d.shopId||'');
+          const have=new Set(dishes.map(dkey));
+          j.dishes.forEach(nd2=>{
+            const c={...nd2,id:uid(),shopId:nd2.shopId?(idmap[nd2.shopId]||''):''};
+            if(have.has(dkey(c)))return;
+            have.add(dkey(c)); dishes.push(c);
+          });
+          orders=[...orders,...(j.orders||[])];
+        }else{
+          dishes=j.dishes; shops=j.shops||[]; orders=j.orders||[]; stg=Object.assign(stg,j.stg||{});
+        }
+        persist(); toast('导进来了 🎉'); setTimeout(()=>location.reload(),700);
       }catch{ toast('这个文件读不了,换一份试试 😅') }
     };
     r.readAsText(f);
@@ -967,7 +1020,64 @@ function shrink(file,cb,max=1000,q=.72){
     im.src=r.result};
   r.readAsDataURL(file);
 }
-$('#eFile').onchange=e=>{const f=e.target.files[0];if(f)shrink(f,setCover);e.target.value=''};
+/* ── 裁成正方形:拖动挪位置,滑块放大,确认后画到 canvas ── */
+const cp={img:null,base:1,zoom:1,x:0,y:0,box:0,cb:null,out:900};
+function cpApply(){
+  const k=cp.base*cp.zoom, w=cp.img.naturalWidth*k, h=cp.img.naturalHeight*k;
+  cp.x=Math.min(0,Math.max(cp.box-w,cp.x));        // 不许露白边
+  cp.y=Math.min(0,Math.max(cp.box-h,cp.y));
+  $('#cpImg').style.transform=`translate(${cp.x}px,${cp.y}px) scale(${k})`;
+}
+function openCrop(file,cb,out){
+  cp.cb=cb; cp.out=out||900;
+  const r=new FileReader();
+  r.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      cp.img=im; cp.zoom=1;
+      openSheet($('#shCrop'));
+      requestAnimationFrame(()=>{
+        cp.box=$('#cpBox').clientWidth||320;
+        cp.base=Math.max(cp.box/im.naturalWidth, cp.box/im.naturalHeight);   // 先铺满
+        const w=im.naturalWidth*cp.base, h=im.naturalHeight*cp.base;
+        cp.x=(cp.box-w)/2; cp.y=(cp.box-h)/2;                                 // 居中起步
+        const el=$('#cpImg'); el.src=im.src; el.style.width=im.naturalWidth+'px'; el.style.height='auto';
+        $('#cpZoom').value=1; cpApply();
+      });
+    };
+    im.src=r.result;
+  };
+  r.readAsDataURL(file);
+}
+$('#cpZoom').oninput=e=>{
+  const old=cp.base*cp.zoom, mid=cp.box/2;
+  cp.zoom=+e.target.value;
+  const k=cp.base*cp.zoom, f=k/old;
+  cp.x=mid-(mid-cp.x)*f; cp.y=mid-(mid-cp.y)*f;   // 以中心为锚点缩放
+  cpApply();
+};
+(()=>{
+  const box=$('#cpBox'); let id=null,sx=0,sy=0,ox=0,oy=0;
+  box.addEventListener('pointerdown',e=>{
+    if(!cp.img)return; id=e.pointerId; sx=e.clientX; sy=e.clientY; ox=cp.x; oy=cp.y;
+    box.setPointerCapture(id);
+  });
+  box.addEventListener('pointermove',e=>{
+    if(id===null||e.pointerId!==id)return;
+    cp.x=ox+(e.clientX-sx); cp.y=oy+(e.clientY-sy); cpApply();
+  });
+  const up=e=>{if(id!==null&&e.pointerId===id){try{box.releasePointerCapture(id)}catch{} id=null}};
+  box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+})();
+$('#cpOk').onclick=()=>{
+  if(!cp.img||!cp.cb)return closeSheets();
+  const k=cp.base*cp.zoom, S=cp.out;
+  const c=document.createElement('canvas'); c.width=S; c.height=S;
+  c.getContext('2d').drawImage(cp.img, -cp.x/k, -cp.y/k, cp.box/k, cp.box/k, 0, 0, S, S);
+  const cb=cp.cb; cp.cb=null; closeSheets(); cb(c.toDataURL('image/jpeg',.82));
+};
+
+$('#eFile').onchange=e=>{const f=e.target.files[0];if(f)openCrop(f,setCover,900);e.target.value=''};
 
 $('#eSave').onclick=()=>{
   const name=$('#eName').value.trim();
@@ -1037,7 +1147,9 @@ function openView(id){
   const c=$('#vCart'); if(c)c.onclick=()=>{toggleCart(id);openView(id)};
   const vs=$('#vShop'); if(vs)vs.onclick=()=>{const s=d.shopId;closeSheets();setTimeout(()=>openShop(s),270)};
   const dn=$('#vDone'); if(dn)dn.onclick=()=>{d.st='done';persist();render();openView(id);toast('恭喜吃到 🎉 记得评猫爪')};
-  $('#logFile').onchange=e=>{const f=e.target.files[0];if(f)shrink(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent=''},700);e.target.value=''};
+  $('#logFile').onchange=e=>{const f=e.target.files[0];
+    if(f)openCrop(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent='';openSheet($('#shView'))},700);
+    e.target.value=''};
   $('#logGo').onclick=()=>{
     const t=$('#logText').value.trim();
     if(!t&&!logPhoto){toast('写点什么或者放张图 🐾');return}
