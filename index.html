@@ -501,32 +501,8 @@ const SRC={
 };
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
-/* ── 示范数据(想清空去「小窝」页底部) ── */
-const SEED=[
- {name:'糖醋排骨',src:'zhe',st:'done',paws:5,fav:1,tags:['🥩 硬菜'],note:'他的招牌,酸甜刚好不齁,肉是脱骨的。',
-  logs:[{id:'l1',date:'2026-08-20',text:'这次收汁收得更亮,颜色特别好看 ✨',photo:''},
-        {id:'l2',date:'2026-08-26',text:'我说想吃酸一点,他多加了半勺醋,更对我胃口了',photo:''}]},
- {name:'番茄牛腩',src:'zhe',st:'done',paws:5,fav:1,tags:['🍲 汤','🥩 硬菜'],note:'炖了两个小时,牛腩入口即化,汤拌饭能吃两碗。',logs:[]},
- {name:'蒜蓉粉丝虾',src:'zhe',st:'done',paws:4,fav:0,tags:['🐟 海鲜'],note:'蒜香够足,虾很嫩。',
-  logs:[{id:'l3',date:'2026-08-24',text:'粉丝底下垫了点蒸鱼豉油,好吃',photo:''}]},
- {name:'麻婆豆腐',src:'zhe',st:'done',paws:4,fav:0,tags:['🌶️ 辣','🍚 饭'],note:'很下饭,麻味刚刚好。',logs:[]},
- {name:'冬阴功汤',src:'zhe',st:'want',paws:0,fav:0,tags:['🍲 汤','🌶️ 辣'],note:'小红书刷到的,想让他试试 🙏',logs:[]},
- {name:'蒜蓉西兰花',src:'me',st:'done',paws:4,fav:0,tags:['🥬 清淡','⚡ 快手'],note:'我的快手菜,焯水30秒就够。',
-  logs:[{id:'l4',date:'2026-08-25',text:'焯完过一下冷水,颜色绿得多',photo:''}]},
- {name:'番茄炒蛋',src:'me',st:'done',paws:4,fav:0,tags:['⚡ 快手','🍚 饭'],note:'先炒蛋盛出来再下番茄,蛋才嫩。',logs:[]},
- {name:'可乐鸡翅',src:'me',st:'done',paws:2,fav:0,tags:['🍰 甜'],note:'齁甜还糊了锅底 😇 这个菜谱有问题。',
-  logs:[{id:'l5',date:'2026-08-22',text:'收汁那步火太大了,下次换个菜谱',photo:''}]},
- {name:'白灼虾',src:'me',st:'want',paws:0,fav:0,tags:['🐟 海鲜','⚡ 快手'],note:'',logs:[]},
- {name:'螺蛳粉',src:'delivery',st:'done',paws:4,fav:0,tags:['🍜 面','🌶️ 辣'],shop:'嗦粉记',shopId:'sh0',price:26,note:'加双份腐竹才对,汤底够酸爽。',logs:[]},
- {name:'炸腐竹',src:'delivery',st:'done',paws:5,fav:0,tags:['⚡ 快手'],shop:'嗦粉记',shopId:'sh0',price:8,note:'必点!单加一份也不亏。',logs:[]},
- {name:'麻辣香锅',src:'delivery',st:'done',paws:3,fav:0,tags:['🌶️ 辣'],shop:'蜀签签',shopId:'sh1',price:42,note:'菜给得足但油太重了,下次备注少油。',logs:[]},
- {name:'潮汕牛肉火锅',src:'restaurant',st:'done',paws:5,fav:1,tags:['🥩 硬菜'],shop:'八合里',shopId:'sh2',price:326,note:'吊龙和匙柄封神,沙茶酱一定要单独加一份。',logs:[]},
-];
-const SEEDSHOPS=[
- {id:'sh0',name:'嗦粉记',kind:'delivery',memo:'多加一份腐竹,不要香菜',avg:34,warn:'',visits:[ago(2),ago(9),ago(16)]},
- {id:'sh1',name:'蜀签签',kind:'delivery',memo:'备注少油',avg:42,warn:'油给得太重了',visits:[ago(11)]},
- {id:'sh2',name:'八合里',kind:'restaurant',memo:'沙茶酱单独加一份',avg:163,warn:'',visits:[ago(6)]},
-];
+/* 不塞示范数据:第一次打开就是空的,东西都由她自己录 */
+const SEED=[], SEEDSHOPS=[];
 
 /* ── 读数据 + 从 v2 迁移(旧键原样留着当备份,永远不写它) ── */
 let dishes=ld(K,null), shops=ld(KSH,null);
@@ -873,7 +849,7 @@ function rHome(){
    <button class="bigbtn" id="hExport">📦 导出一份备份</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📥 从备份恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
-   <button class="danger" id="hWipe">清空所有数据(含示范菜)</button>`;
+   <button class="danger" id="hWipe">清空所有数据</button>`;
   $('#hSum').onclick=openSum;
   const more=$('#tlMore'); if(more)more.onclick=()=>{tlAll=true;$('#tlBox').innerHTML=drawTimeline()};
   const save=()=>{stg.me=$('#sMe').value.trim()||'兔老板';stg.chef=$('#sChef').value.trim()||'哲哲';persist();render()};
@@ -898,7 +874,11 @@ function rHome(){
     };
     r.readAsText(f);
   };
-  $('#hWipe').onclick=()=>{if(!confirm('所有菜、点单记录都会没,确定?'))return;localStorage.clear();location.reload()};
+  $('#hWipe').onclick=()=>{
+    if(!confirm('所有菜、店、点单记录都会没,确定?'))return;
+    dishes=[];shops=[];cart=[];orders=[];persist();   // 写空,别 clear 完又被重新种上
+    toast('清空了');setTimeout(()=>location.reload(),500);
+  };
 }
 
 /* ══════════════ 弹层 ══════════════ */
