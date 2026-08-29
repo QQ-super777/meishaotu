@@ -106,6 +106,7 @@ body{overflow-x:hidden}
 .s-me{background-color:var(--pink)}
 .s-delivery{background-color:var(--cream)}
 .s-restaurant{background-color:var(--apricot)}
+.s-drink{background-color:#ece2f7}
 .dish .bd{padding:9px 12px 12px}
 .dish .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
 .dish .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -168,6 +169,8 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 .seg button.on[data-s=me]{background:var(--pink)}
 .seg button.on[data-s=delivery]{background:var(--cream)}
 .seg button.on[data-s=restaurant]{background:var(--apricot)}
+.seg button.on[data-s=drink]{background:#ece2f7}
+.seg{grid-template-columns:repeat(3,minmax(0,1fr))}
 .stg{display:flex;gap:8px;margin-bottom:15px}
 .stg button{flex:1;padding:11px;border-radius:18px;background:#fff;font-size:13px;font-weight:700;color:var(--ink2);box-shadow:0 2px 8px rgba(255,150,180,.13)}
 .stg button.on{background:var(--hot);color:#fff;box-shadow:0 4px 13px rgba(255,140,175,.35)}
@@ -401,6 +404,7 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
         <button data-s="me">🐰 兔老板</button>
         <button data-s="delivery">🛵 外卖</button>
         <button data-s="restaurant">🍽️ 馆子</button>
+        <button data-s="drink">🧋 奶茶</button>
       </div>
     </div>
     <div class="stg" id="eStg">
@@ -412,7 +416,7 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
     <div class="f"><label>菜名</label><input id="eName" placeholder="糖醋排骨"></div>
     <div id="gShop">
       <div class="f2">
-        <div class="f"><label>哪家店</label><input id="eShop" placeholder="店名"></div>
+        <div class="f"><label id="eShopLb">哪家店</label><input id="eShop" placeholder="店名"></div>
         <div class="f"><label>大概多少钱</label><input id="ePrice" type="number" inputmode="decimal" placeholder="38"></div>
       </div>
     </div>
@@ -499,8 +503,9 @@ const today=()=>new Date().toISOString().slice(0,10);
 
 const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
-  delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'},
+  delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
+const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍬 三分糖','🍬 五分糖','🍬 七分糖','🚫 无糖','❄️ 去冰','🧊 少冰','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
 /* 不塞示范数据:第一次打开就是空的,东西都由她自己录 */
@@ -574,7 +579,7 @@ function shopStats(s){
 }
 
 let view='out', fOut='all', fKit='all';
-const FOUT=()=>[['all','全部'],['delivery','🛵 外卖'],['restaurant','🍽️ 馆子']];
+const FOUT=()=>[['all','全部'],['delivery','🛵 外卖'],['restaurant','🍽️ 馆子'],['drink','🧋 奶茶']];
 const FKIT=()=>[['all','全部'],['zhe','👨‍🍳 '+stg.chef],['me','🐰 '+stg.me],['want','🔖 待尝试']];
 function drawFilters(){
   const bar=$('#filters');
@@ -627,6 +632,21 @@ function shopCard(s){
 }
 function rOut(){
   const box=$('#vOut');
+  if(fOut==='drink'){                       // 奶茶按口味记,不按店
+    const dk=dishes.filter(d=>d.src==='drink');
+    const done=dk.filter(d=>d.st!=='want'), want=dk.filter(d=>d.st==='want');
+    if(!dk.length){
+      box.innerHTML=`<div class="empty"><img src="img/sansan-head.png"><br>还没记过奶茶<br>点右下角 ＋ 记一杯,顺手写清楚几分糖 🧋</div>`;return;
+    }
+    let hh='';
+    if(done.length)hh+=`<div class="sect"><span class="t">🧋 喝过的</span><span class="n">${done.length} 杯</span></div>
+      <div class="grid">${done.map(card).join('')}</div>`;
+    if(want.length)hh+=`<div class="sect"><span class="t">🔖 想喝的</span><span class="n">${want.length} 杯</span></div>
+      <div class="grid">${want.map(card).join('')}</div>`;
+    box.innerHTML=hh;
+    box.querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>openView(el.dataset.id));
+    return;
+  }
   if(!shops.length){
     box.innerHTML=`<div class="empty"><img src="img/sansan-head.png"><br>还没收录店<br>点右下角 ＋ 把常点的那家记下来</div>`;return;
   }
@@ -647,7 +667,7 @@ function card(d){
       ${d.st==='want'?'<span class="badge">🔖 想吃</span>':''}
       <span class="srctag">${SRC[d.src].e} ${esc(nameOf(d.src))}</span>
       ${d.fav?'<span class="heart">❤️</span>':''}
-      <button class="plus ${inCart?'in':''}" data-add="${d.id}">＋</button>
+      ${homemade(d)?`<button class="plus ${inCart?'in':''}" data-add="${d.id}">＋</button>`:''}
     </div>
     <div class="bd"><div class="nm">${esc(d.name)}</div>
       <div class="mt">${esc(d.note||'还没写一句话')}</div>
@@ -825,7 +845,9 @@ function openSum(){
 function rHome(){
   const done=dishes.filter(d=>d.st==='done');
   const top=[...done].filter(d=>d.paws).sort((a,b)=>b.paws-a.paws).slice(0,6);
-  const visits=shops.reduce((s,x)=>s+x.visits.length,0);
+  const dVisits=shops.filter(x=>x.kind==='delivery').reduce((s,x)=>s+x.visits.length,0);
+  const rVisits=shops.filter(x=>x.kind==='restaurant').reduce((s,x)=>s+x.visits.length,0);
+  const visits=dVisits+rVisits;
   const byVisit=shops.reduce((s,x)=>s+x.visits.length*(+x.avg||0),0);
   const spend=byVisit||done.filter(d=>!homemade(d)).reduce((s,d)=>s+(+d.price||0),0);
   $('#vHome').innerHTML=`
@@ -834,8 +856,8 @@ function rHome(){
    <button class="bigbtn pink" id="hSum">📸 本月小结</button>
    <div class="tiles">
      <div class="tile"><div class="v">${done.filter(d=>d.src==='zhe').length}</div><div class="l">👨‍🍳 ${esc(stg.chef)}会做的</div></div>
-     <div class="tile"><div class="v">${shops.length}</div><div class="l">🛵 收录了几家店</div></div>
-     <div class="tile"><div class="v">${visits}</div><div class="l">🍽️ 出去吃过几次</div></div>
+     <div class="tile"><div class="v">${dVisits}</div><div class="l">🛵 点过几次外卖</div></div>
+     <div class="tile"><div class="v">${rVisits}</div><div class="l">🍽️ 出去吃过几次</div></div>
      <div class="tile"><div class="v">${dishes.filter(d=>d.st==='want').length}</div><div class="l">🔖 种草没吃到</div></div>
    </div>
    ${top.length?`<div class="blk"><div class="bl">🏆 猫爪排行榜</div>${top.map((d,i)=>
@@ -891,7 +913,9 @@ $('#mask').onclick=closeSheets; $$('.shead .cl').forEach(b=>b.onclick=closeSheet
 /* ── 加菜 / 改菜 ── */
 let editId=null,eSrc='zhe',eSt='done',ePaws=0,eFav=0,eCover='',eTagSel=[];
 const setSrc=s=>{eSrc=s;$$('#eSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
-  $('#gShop').classList.toggle('hide',s==='zhe'||s==='me')};
+  $('#gShop').classList.toggle('hide',s==='zhe'||s==='me');
+  $('#eShopLb').textContent=s==='drink'?'哪家奶茶店(可不填)':'哪家店';
+  drawTags();};
 const setSt=s=>{eSt=s;$$('#eStg button').forEach(b=>b.classList.toggle('on',b.dataset.st===s));$('#fPaws').classList.toggle('hide',s==='want')};
 const setPaws=n=>{ePaws=n;$$('#ePaws button').forEach(b=>b.classList.toggle('on',+b.dataset.p<=n));
   $('#ePawsTxt').textContent=['还没评','emmm','还行','好吃','很好吃','封神了!'][n]};
@@ -906,7 +930,7 @@ function setCover(d){
   if(!d&&x)x.remove();
 }
 function drawTags(){
-  $('#eTags').innerHTML=TAGS.map(t=>`<button data-t="${t}" class="${eTagSel.includes(t)?'on':''}">${t}</button>`).join('');
+  $('#eTags').innerHTML=(eSrc==='drink'?DRINKTAGS:TAGS).map(t=>`<button data-t="${t}" class="${eTagSel.includes(t)?'on':''}">${t}</button>`).join('');
   $$('#eTags button').forEach(b=>b.onclick=()=>{
     const t=b.dataset.t;
     eTagSel=eTagSel.includes(t)?eTagSel.filter(x=>x!==t):[...eTagSel,t];
@@ -925,7 +949,10 @@ function openEdit(id,pre,onlyHome){
   openSheet($('#shEdit'));
   if(!id)setTimeout(()=>$('#eName').focus(),340);
 }
-$('#fab').onclick=()=>view==='out'?openShopEdit(null):openEdit(null,null,true);
+$('#fab').onclick=()=>{
+  if(view==='out')return fOut==='drink'?openEdit(null,{src:'drink'}):openShopEdit(null);
+  openEdit(null,null,true);
+};
 $$('#eSeg button').forEach(b=>b.onclick=()=>setSrc(b.dataset.s));
 $$('#eStg button').forEach(b=>b.onclick=()=>setSt(b.dataset.st));
 $$('#ePaws button').forEach(b=>b.onclick=()=>setPaws(ePaws===+b.dataset.p?0:+b.dataset.p));
@@ -1130,6 +1157,20 @@ function roll(){
   const head=t=>`<div class="rollbox"><img class="rimg" src="img/${cat}-head.png"><div class="say">${t}</div>`;
   const nope=t=>{box.innerHTML=head(t)+'</div>';openSheet($('#shRoll'))};
 
+  if(view==='out'&&fOut==='drink'){
+    $('#shRoll .ti').textContent='今天喝哪杯';
+    const pool=dishes.filter(d=>d.src==='drink'&&d.st!=='want');
+    if(!pool.length)return nope('还没记过奶茶,摇不出来 😿');
+    const d=pool[Math.floor(Math.random()*pool.length)];
+    box.innerHTML=head(say)+`
+       <div class="big">${esc(d.name)}</div>
+       <div style="font-size:13px;color:var(--ink2);margin-bottom:8px">${esc([d.shop,d.price?'¥'+d.price:''].filter(Boolean).join(' · ')||'🧋')}</div>
+       ${d.tags&&d.tags.length?`<div style="font-size:13px;margin-bottom:6px">${d.tags.map(esc).join('  ')}</div>`:''}
+       <div style="font-size:15px;margin-bottom:14px">${paw(d.paws)}</div></div>
+     <button class="bigbtn" id="rollOpen">看看这杯</button>`;
+    const op=$('#rollOpen'); if(op)op.onclick=()=>{closeSheets();setTimeout(()=>openView(d.id),270)};
+    openSheet($('#shRoll'));return;
+  }
   if(view==='out'){
     $('#shRoll .ti').textContent=fOut==='restaurant'?'今天去哪家':fOut==='delivery'?'今天点哪家':'今天吃哪家';
     const pool=shops.filter(s=>fOut==='all'||s.kind===fOut);
