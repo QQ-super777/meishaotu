@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2135';
+const BUILD='0830-2138';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -598,10 +598,17 @@ function dataURLtoBlob(u){
   for(let n=0;n<bin.length;n++)arr[n]=bin.charCodeAt(n);
   return new Blob([arr],{type:mime});
 }
-async function savePic(dataURL){
-  const id='p:'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-  const b=dataURLtoBlob(dataURL);
-  await picPut(id,b); PICB[id]=b; PIC[id]=URL.createObjectURL(b); return id;
+/* 出过一次照片丢失事故,存回 base64 —— 这套一直是能用的
+   IndexedDB 只保留读,老数据还能显示 */
+async function savePic(dataURL){ return dataURL; }
+/* 死链接(有编号没内容)清成空,免得卡片一直空白 */
+function dropDeadPics(){
+  let n=0;
+  const f=v=>{ if(v&&String(v).startsWith('p:')&&!PIC[v]){n++;return ''} return v };
+  dishes.forEach(d=>{ d.cover=f(d.cover); (d.logs||[]).forEach(l=>{l.photo=f(l.photo)}) });
+  shops.forEach(x=>{ x.cover=f(x.cover) });
+  if(n){persist();render()}
+  return n;
 }
 /* 数据里一共引用了多少张照片(用来跟图库对账) */
 const refPics=()=>{
@@ -843,7 +850,7 @@ function makeOrder(){
   try{ const all=await picAll(); for(const k in all){PICB[k]=all[k];PIC[k]=URL.createObjectURL(all[k])} }
   catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
   render();                                  // 先画,别让她等
-  /* 出过事故:自动搬运先停了,等查清楚再说 */
+  dropDeadPics();
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch{}
   persist(); render();
 })(); closeSheets(); showReceipt(o);
@@ -1048,10 +1055,9 @@ function rHome(){
       const e=await navigator.storage.estimate();
       const mb=n=>Math.round(n/1048576);
       const q=$('#hQuota');
-      const ref=refPics(), lost=ref.filter(v=>String(v).startsWith('p:')&&!PIC[v]).length;
-      if(q)q.innerHTML=`菜上挂了 ${ref.length} 张 · 图库里 ${Object.keys(PIC).length} 张`
-        +(lost?` · <span style="color:#d9866f">${lost} 张找不到了</span>`:'')
-        +`<br>文字 ${usedKB()} KB · 一共用了 ${mb(e.usage)} MB / 可用 ${mb(e.quota)} MB`;
+      const kb=usedKB(), left=Math.max(0,Math.floor((4600-kb)/34));
+      if(q)q.innerHTML=`照片 ${refPics().length} 张 · 已用 ${kb} KB / 约 4600 KB`
+        +`<br>大概还能再放 ${left} 张`;
     }catch{}
   })();
   $('#hDedup').onclick=()=>{
@@ -1191,11 +1197,11 @@ $('#cpOk').onclick=()=>{
   const k=cp.base*cp.zoom, S=cp.out;
   const c=document.createElement('canvas'); c.width=S; c.height=S;
   c.getContext('2d').drawImage(cp.img, -cp.x/k, -cp.y/k, cp.box/k, cp.box/k, 0, 0, S, S);
-  const cb=cp.cb; cp.cb=null; closeOne($('#shCrop')); cb(c.toDataURL('image/jpeg',.72));
+  const cb=cp.cb; cp.cb=null; closeOne($('#shCrop')); cb(c.toDataURL('image/jpeg',.65));
 };
 
 $('#eFile').onchange=e=>{const f=e.target.files[0];
-  if(f)openCrop(f,async u=>{try{setCover(await savePic(u))}catch{toast('照片存不下 😖')}},720);
+  if(f)openCrop(f,async u=>{try{setCover(await savePic(u))}catch{toast('照片存不下 😖')}},480);
   e.target.value=''};
 
 let saving=false;
