@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2138';
+const BUILD='0830-2142';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -582,14 +582,20 @@ const picPut=(id,blob)=>idb().then(db=>new Promise((res,rej)=>{
   const t=db.transaction('pics','readwrite');t.objectStore('pics').put(blob,id);
   t.oncomplete=()=>res(id);t.onerror=()=>rej(t.error);
 }));
+const picGet=id=>idb().then(db=>new Promise((res,rej)=>{
+  const r=db.transaction('pics','readonly').objectStore('pics').get(id);
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+}));
 const picAll=()=>idb().then(db=>new Promise((res,rej)=>{
   const out={},c=db.transaction('pics','readonly').objectStore('pics').openCursor();
   c.onsuccess=e=>{const q=e.target.result;if(q){out[q.key]=q.value;q.continue()}else res(out)};
   c.onerror=()=>rej(c.error);
 }));
 const PIC={}, PICB={};      // id -> blob URL / blob 本体
+const KP='ss.pend.v1';
+let pend=ld(KP,{});         // 刚存进大仓库、还没经过一次重启验证的 base64 副本
 let PICERR='';
-const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||''):v);
+const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||pend[v]||''):v);
 /* Safari 的 fetch() 读不了 data: URL,手工解码 */
 function dataURLtoBlob(u){
   const i=u.indexOf(','), head=u.slice(0,i), body=u.slice(i+1);
@@ -600,7 +606,33 @@ function dataURLtoBlob(u){
 }
 /* 出过一次照片丢失事故,存回 base64 —— 这套一直是能用的
    IndexedDB 只保留读,老数据还能显示 */
-async function savePic(dataURL){ return dataURL; }
+/* 存字节而不是 Blob:iOS 的 WebKit 存 Blob 会失效,这是已知坑 */
+function dataURLtoBytes(u){
+  const i=u.indexOf(','), head=u.slice(0,i), bin=atob(u.slice(i+1));
+  const a=new Uint8Array(bin.length);
+  for(let n=0;n<bin.length;n++)a[n]=bin.charCodeAt(n);
+  return {buf:a.buffer, mime:(head.match(/:(.*?);/)||[])[1]||'image/jpeg'};
+}
+function useRec(id,rec){
+  const b=new Blob([rec.buf],{type:rec.mime||'image/jpeg'});
+  PICB[id]=b; PIC[id]=URL.createObjectURL(b); return b;
+}
+/* 保险一:写完立刻读回来验一遍,验不过就退回 base64,绝不留空指针
+   保险二:base64 副本先留在待确认区,等下次开 app 确认 IndexedDB 真的留住了才删 */
+async function savePic(dataURL){
+  const id='p:'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+  try{
+    const rec=dataURLtoBytes(dataURL);
+    await picPut(id,rec);
+    const back=await picGet(id);
+    if(!back||!back.buf||back.buf.byteLength!==rec.buf.byteLength)throw new Error('读回校验没过');
+    useRec(id,back);
+    pend[id]=dataURL; sv(KP,pend);          // 副本留着,下次开机再确认
+    return id;
+  }catch(e){
+    return dataURL;                          // 大仓库不给用就老实用 base64
+  }
+}
 /* 死链接(有编号没内容)清成空,免得卡片一直空白 */
 function dropDeadPics(){
   let n=0;
@@ -847,10 +879,30 @@ function makeOrder(){
     items:cart.map(id=>{const d=get(id);return d&&{id,name:d.name,paws:d.paws,src:d.src}}).filter(Boolean),
     msg:pendingMsg.trim()};
   orders.unshift(o); cart=[]; pendingMsg=''; (async()=>{
-  try{ const all=await picAll(); for(const k in all){PICB[k]=all[k];PIC[k]=URL.createObjectURL(all[k])} }
-  catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
+  try{
+    const all=await picAll();
+    for(const k in all){ const r=all[k]; if(r&&r.buf)useRec(k,r); else if(r instanceof Blob){PICB[k]=r;PIC[k]=URL.createObjectURL(r)} }
+  }catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
+
+  /* 重启后对账:大仓库留住了就删副本,没留住就用副本救回来并重存一次 */
+  let saved=0, rescued=0;
+  for(const id in pend){
+    if(PIC[id]){ delete pend[id]; saved++; continue; }
+    try{
+      const rec=dataURLtoBytes(pend[id]);
+      await picPut(id,rec);
+      const back=await picGet(id);
+      if(back&&back.buf&&back.buf.byteLength===rec.buf.byteLength){ useRec(id,back); rescued++; }
+      else throw 0;
+    }catch(e){
+      PIC[id]=pend[id];                       // 大仓库靠不住,就一直用副本显示
+      PICERR=PICERR||'大仓库存不住,已改用备用副本';
+    }
+  }
+  if(saved||rescued)sv(KP,pend);
   render();                                  // 先画,别让她等
   dropDeadPics();
+  if(PICERR)render();
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch{}
   persist(); render();
 })(); closeSheets(); showReceipt(o);
@@ -1055,9 +1107,9 @@ function rHome(){
       const e=await navigator.storage.estimate();
       const mb=n=>Math.round(n/1048576);
       const q=$('#hQuota');
-      const kb=usedKB(), left=Math.max(0,Math.floor((4600-kb)/34));
-      if(q)q.innerHTML=`照片 ${refPics().length} 张 · 已用 ${kb} KB / 约 4600 KB`
-        +`<br>大概还能再放 ${left} 张`;
+      const inBig=refPics().filter(v=>String(v).startsWith('p:')&&PIC[v]).length;
+      if(q)q.innerHTML=`照片 ${refPics().length} 张,其中 ${inBig} 张在大仓库`
+        +`<br>大仓库已用 ${mb(e.usage)} MB / 可用 ${mb(e.quota)} MB · 文字 ${usedKB()} KB`;
     }catch{}
   })();
   $('#hDedup').onclick=()=>{
