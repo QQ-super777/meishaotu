@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2214';
+const BUILD='0830-2220';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -582,6 +582,32 @@ const picPut=(id,blob)=>idb().then(db=>new Promise((res,rej)=>{
   const t=db.transaction('pics','readwrite');t.objectStore('pics').put(blob,id);
   t.oncomplete=()=>res(id);t.onerror=()=>rej(t.error);
 }));
+/* 计划表也存在大仓库里 —— localStorage 已经满了,连一个字节都写不进 */
+const idbSet=(k,v)=>picPut(k,v);
+const idbGet=k=>picGet(k);
+const picDel=k=>idb().then(db=>new Promise((res,rej)=>{
+  const t=db.transaction('pics','readwrite');t.objectStore('pics').delete(k);
+  t.oncomplete=()=>res();t.onerror=()=>rej(t.error);
+}));
+/* 把所有 base64 照片列出来,标好它挂在哪 */
+function listBase64(){
+  const out=[];
+  dishes.forEach(d=>{
+    if(d.cover&&String(d.cover).startsWith('data:'))out.push({path:'d|'+d.id+'|cover',data:d.cover});
+    (d.logs||[]).forEach(l=>{ if(l.photo&&String(l.photo).startsWith('data:'))out.push({path:'d|'+d.id+'|log|'+l.id,data:l.photo}) });
+  });
+  shops.forEach(x=>{ if(x.cover&&String(x.cover).startsWith('data:'))out.push({path:'s|'+x.id+'|cover',data:x.cover}) });
+  return out;
+}
+function setByPath(path,val){
+  const a=path.split('|');
+  if(a[0]==='d'){
+    const d=dishes.find(x=>x.id===a[1]); if(!d)return false;
+    if(a[2]==='cover'){d.cover=val;return true}
+    const l=(d.logs||[]).find(y=>y.id===a[3]); if(!l)return false; l.photo=val; return true;
+  }
+  const x=shops.find(y=>y.id===a[1]); if(!x)return false; x.cover=val; return true;
+}
 const picGet=id=>idb().then(db=>new Promise((res,rej)=>{
   const r=db.transaction('pics','readonly').objectStore('pics').get(id);
   r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
@@ -873,7 +899,32 @@ function makeOrder(){
     for(const k in all){ const r=all[k]; if(r&&r.buf)useRec(k,r); else if(r instanceof Blob){PICB[k]=r;PIC[k]=URL.createObjectURL(r)} }
   }catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
 
-  /* 重启后对账:大仓库留住了就删副本,没留住就用副本救回来并重存一次 */
+  /* 第二段:重启后核对上次复制的照片是否全都还在,全在才把原图换成引用(腾空间) */
+  try{
+    const plan=await idbGet('__plan');
+    if(plan&&plan.phase==='written'&&plan.items&&plan.items.length){
+      let alive=0, dead=0;
+      for(const it of plan.items){
+        const r=await picGet(it.pid);
+        if(r&&r.buf&&r.buf.byteLength>0){ useRec(it.pid,r); alive++ } else dead++;
+      }
+      if(dead===0){
+        plan.items.forEach(it=>setByPath(it.path,it.pid));
+        const okSave=persist();
+        if(okSave){
+          await idbSet('__plan',{phase:'done'});
+          setTimeout(()=>alert(`✅ 搬运完成!${alive} 张照片经受住了重启考验,已经从满掉的小仓库里挪出去了。\n现在可以放心继续传照片。`),600);
+        }else{
+          setTimeout(()=>alert('照片是好的,但写回目录失败了,原样保留。再重开一次试试。'),600);
+        }
+      }else{
+        setTimeout(()=>alert(`⚠️ ${dead} 张没能留住,大仓库靠不住。\n原图一张没动,你的照片都在。我不会再往那边搬了。`),600);
+        await idbSet('__plan',{phase:'failed'});
+      }
+    }
+  }catch(e){}
+
+  /* 老逻辑:副本对账 */
   let saved=0, rescued=0;
   for(const id in pend){
     if(PIC[id]){ delete pend[id]; saved++; continue; }
@@ -1010,6 +1061,7 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
+   <button class="bigbtn pink" id="hMove">📦 把照片搬去大仓库</button>
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
    ${PICERR?`<div class="blk" style="background:#ffe9ef"><div class="bl">⚠️ 图库打不开</div><div class="bv" style="font-size:12px">${esc(PICERR)}</div></div>`:''}
    <div id="hQuota" style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
@@ -1100,6 +1152,30 @@ function rHome(){
         +(pct>=90?`<br><b style="color:#d9866f">已经满了,存不进新东西</b>`:'');
     }catch{}
   })();
+  $('#hMove').onclick=async()=>{
+    const b=$('#hMove');
+    try{
+      const list=listBase64();
+      if(!list.length){alert('没有需要搬的照片');return}
+      if(!confirm(`要把 ${list.length} 张照片搬进大仓库吗?\n\n这一步只是复制,原图一张都不动。\n搬完你要完全关掉 app 再打开,确认真的留住了,我才会删原图。`))return;
+      b.textContent='搬运中…';
+      const items=[]; let bad=0;
+      for(const it of list){
+        try{
+          const pid='p:'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+          const rec=dataURLtoBytes(it.data);
+          await picPut(pid,rec);
+          const back=await picGet(pid);
+          if(!back||!back.buf||back.buf.byteLength!==rec.buf.byteLength)throw 0;
+          items.push({path:it.path,pid});
+        }catch(e){ bad++ }
+      }
+      if(!items.length){alert('一张都没写进去,大仓库用不了 😖\n原数据没动,你还是安全的。');b.textContent='📦 把照片搬去大仓库';return}
+      await idbSet('__plan',{phase:'written',items});
+      alert(`已复制 ${items.length} 张进大仓库${bad?`(${bad} 张失败)`:''}。\n\n现在请【完全关掉 app 再打开】。\n重开后我会检查它们是不是真的留住了,确认后才删原图腾空间。`);
+      b.textContent='📦 已复制,请重开 app';
+    }catch(e){ alert('出错:'+(e&&e.message||e)); b.textContent='📦 把照片搬去大仓库'; }
+  };
   $('#hDedup').onclick=()=>{
     const seen=new Set(), keep=[];
     dishes.forEach(d=>{
