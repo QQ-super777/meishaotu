@@ -1,7 +1,7 @@
 /* 离线缓存:第一次打开之后存进手机,github 连不上也照样能用
    策略:页面走「先联网、连不上再吃缓存」,图片走「先缓存、没有再联网」
    这样既能拿到我推的新版,又不怕断网 */
-const CACHE = 'meishaotu-0830-2045';
+const CACHE = 'meishaotu-0830-2042';
 const CORE = [
   './',
   './index.html',

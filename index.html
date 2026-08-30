@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2045';
+const BUILD='0830-2042';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -587,12 +587,20 @@ const picAll=()=>idb().then(db=>new Promise((res,rej)=>{
   c.onsuccess=e=>{const q=e.target.result;if(q){out[q.key]=q.value;q.continue()}else res(out)};
   c.onerror=()=>rej(c.error);
 }));
-const PIC={};
+const PIC={}, PICB={};      // id -> blob URL / blob 本体
 const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||''):v);
+/* Safari 的 fetch() 读不了 data: URL,手工解码 */
+function dataURLtoBlob(u){
+  const i=u.indexOf(','), head=u.slice(0,i), body=u.slice(i+1);
+  const mime=(head.match(/:(.*?);/)||[])[1]||'image/jpeg';
+  const bin=atob(body), arr=new Uint8Array(bin.length);
+  for(let n=0;n<bin.length;n++)arr[n]=bin.charCodeAt(n);
+  return new Blob([arr],{type:mime});
+}
 async function savePic(dataURL){
   const id='p:'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-  const b=await (await fetch(dataURL)).blob();
-  await picPut(id,b); PIC[id]=URL.createObjectURL(b); return id;
+  const b=dataURLtoBlob(dataURL);
+  await picPut(id,b); PICB[id]=b; PIC[id]=URL.createObjectURL(b); return id;
 }
 /* 数据里一共引用了多少张照片(用来跟图库对账) */
 const refPics=()=>{
@@ -604,18 +612,23 @@ const refPics=()=>{
 const asB64=v=>{
   if(!v)return Promise.resolve('');
   if(!String(v).startsWith('p:'))return Promise.resolve(v);
-  if(!PIC[v])return Promise.resolve('');
-  return fetch(PIC[v]).then(r=>r.blob()).then(b=>new Promise(r=>{
-    const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)}));
+  if(!PICB[v])return Promise.resolve('');
+  return new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(PICB[v])});
 };
 /* 老数据里的 base64 一次性搬进图库 */
 async function movePics(){
-  let n=0;
-  const mv=async v=>{ if(v&&String(v).startsWith('data:')){n++;return await savePic(v)} return v };
+  let ok=0, bad=0;
+  const mv=async v=>{
+    if(!v||!String(v).startsWith('data:'))return v;
+    try{ const id=await savePic(v); ok++; return id }catch(e){ bad++; return v }   // 搬不动就留着,不能弄丢
+  };
   for(const d of dishes){ d.cover=await mv(d.cover);
     for(const l of (d.logs||[])) l.photo=await mv(l.photo); }
   for(const x of shops) x.cover=await mv(x.cover);
-  if(n){persist();toast(`把 ${n} 张照片挪到大仓库了 📦`)}
+  if(ok||bad){
+    persist(); render();
+    toast(bad? `搬了 ${ok} 张,有 ${bad} 张没搬动 😖` : `把 ${ok} 张照片挪到大仓库了 📦`);
+  }
 }
 const pic=d=>{const u=picURL(d.cover);return u?`background-image:url(${u})`:''};
 /* 没照片时按菜名自动配个图标,不然同一个人做的菜长得一模一样 */
@@ -826,9 +839,10 @@ function makeOrder(){
     items:cart.map(id=>{const d=get(id);return d&&{id,name:d.name,paws:d.paws,src:d.src}}).filter(Boolean),
     msg:pendingMsg.trim()};
   orders.unshift(o); cart=[]; pendingMsg=''; (async()=>{
-  try{ const all=await picAll(); for(const k in all) PIC[k]=URL.createObjectURL(all[k]); }catch{}
+  try{ const all=await picAll(); for(const k in all){PICB[k]=all[k];PIC[k]=URL.createObjectURL(all[k])} }
+  catch(err){ setTimeout(()=>toast('图库打不开 😖 '+(err&&err.name||'')),900) }
   render();                                  // 先画,别让她等
-  try{ await movePics() }catch{}
+  try{ await movePics() }catch(err){ toast('迁移出错 😖 '+(err&&err.name||'')) }
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch{}
   persist(); render();
 })(); closeSheets(); showReceipt(o);
