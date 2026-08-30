@@ -515,7 +515,7 @@ const K='ss.dishes.v3', KSH='ss.shops.v3', KOLD='ss.dishes.v2';
 const KC='ss.cart.v2', KO='ss.orders.v2', KS='ss.set.v2';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
-const sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
 const uid=()=>'d'+Math.random().toString(36).slice(2,9);
 const sid=()=>'sh'+Math.random().toString(36).slice(2,9);
 const ago=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-0145';
+const BUILD='0830-2005';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -559,7 +559,12 @@ shops.forEach(s=>{if(!Array.isArray(s.visits))s.visits=[]});
 let cart=ld(KC,[]), orders=ld(KO,[]), stg=ld(KS,{me:'兔老板',chef:'哲哲'});
 if(!stg.chef||stg.chef==='大厨')stg.chef='哲哲';
 if(!stg.me||stg.me==='七七七')stg.me='兔老板';
-const persist=()=>{sv(K,dishes);sv(KSH,shops);sv(KC,cart);sv(KO,orders);sv(KS,stg)};
+const persist=()=>{
+  const ok=[sv(K,dishes),sv(KSH,shops),sv(KC,cart),sv(KO,orders),sv(KS,stg)].every(Boolean);
+  if(!ok)toast('⚠️ 存不下了!照片太多,去小窝看看');
+  return ok;
+};
+const usedKB=()=>{try{return Math.round([K,KSH,KC,KO,KS].reduce((n,k)=>n+((localStorage.getItem(k)||'').length),0)/1024)}catch{return 0}};
 
 /* ══════════════ 工具 ══════════════ */
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -889,6 +894,9 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
+   <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
+   <div style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
+     存储已用 ${usedKB()} KB / 上限大约 5000 KB</div>
    <button class="danger" id="hWipe">清空所有数据</button>
    <div style="text-align:center;color:var(--ink3);font-size:11px;padding:10px 0 4px">版本 ${BUILD}</div>`;
   $('#hSum').onclick=openSum;
@@ -957,6 +965,17 @@ function rHome(){
       if(!j.dishes||!j.dishes.length){toast('暂时没有待导入的 🐾');btn.textContent='📥 拉一批小小七整理好的';return}
       importData(j);
     }catch{ toast('拉不到,可能没网 😿'); btn.textContent='📥 拉一批小小七整理好的'; }
+  };
+  $('#hDedup').onclick=()=>{
+    const seen=new Set(), keep=[];
+    dishes.forEach(d=>{
+      const k=(d.name||'').trim()+'|'+d.src+'|'+(d.shopId||'')+'|'+(d.shop||'');
+      if(seen.has(k))return; seen.add(k); keep.push(d);
+    });
+    const gone=dishes.length-keep.length;
+    if(!gone){toast('没有重复的 🐾');return}
+    if(!confirm(`发现 ${gone} 条重复,只保留最早的那条。确定?`))return;
+    dishes=keep;persist();render();toast(`清掉 ${gone} 条 🧹`);
   };
   $('#hWipe').onclick=()=>{
     if(!confirm('所有菜、店、点单记录都会没,确定?'))return;
@@ -1084,11 +1103,12 @@ $('#cpOk').onclick=()=>{
   const k=cp.base*cp.zoom, S=cp.out;
   const c=document.createElement('canvas'); c.width=S; c.height=S;
   c.getContext('2d').drawImage(cp.img, -cp.x/k, -cp.y/k, cp.box/k, cp.box/k, 0, 0, S, S);
-  const cb=cp.cb; cp.cb=null; closeOne($('#shCrop')); cb(c.toDataURL('image/jpeg',.82));
+  const cb=cp.cb; cp.cb=null; closeOne($('#shCrop')); cb(c.toDataURL('image/jpeg',.72));
 };
 
-$('#eFile').onchange=e=>{const f=e.target.files[0];if(f)openCrop(f,setCover,900);e.target.value=''};
+$('#eFile').onchange=e=>{const f=e.target.files[0];if(f)openCrop(f,setCover,720);e.target.value=''};
 
+let saving=false;
 $('#eSave').onclick=()=>{
   const name=$('#eName').value.trim();
   if(!name){toast('给它起个名先 😅');$('#eName').focus();return}
@@ -1105,8 +1125,11 @@ $('#eSave').onclick=()=>{
     tags:eTagSel,cover:eCover,note:$('#eNote').value.trim(),
     shop:shopName,shopId:shId,price:home?0:(+$('#ePrice').value||0),
     logs:old?old.logs:[],at:old?old.at:today()};
+  if(saving)return; saving=true; setTimeout(()=>saving=false,800);      // 防手快连点
+  const backup=dishes;
   if(editId)dishes=dishes.map(x=>x.id===editId?d:x); else dishes.unshift(d);
-  persist();closeSheets();render();toast(editId?'改好了 ✏️':'记下来了 🍽️');
+  if(!persist()){dishes=backup;saving=false;return}                      // 没存进去就还原,别骗人
+  closeSheets();render();toast(editId?'改好了 ✏️':'记下来了 🍽️');
   if(shId&&view==='out')setTimeout(()=>openShop(shId),120);
 };
 
@@ -1158,7 +1181,7 @@ function openView(id){
   const vs=$('#vShop'); if(vs)vs.onclick=()=>{const s=d.shopId;closeSheets();setTimeout(()=>openShop(s),270)};
   const dn=$('#vDone'); if(dn)dn.onclick=()=>{d.st='done';persist();render();openView(id);toast('恭喜吃到 🎉 记得评猫爪')};
   $('#logFile').onchange=e=>{const f=e.target.files[0];
-    if(f)openCrop(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent=''},700);
+    if(f)openCrop(f,u=>{logPhoto=u;$('#logCam').style.backgroundImage=`url(${u})`;$('#logCam').textContent=''},480);
     e.target.value=''};
   $('#logGo').onclick=()=>{
     const t=$('#logText').value.trim();
