@@ -526,7 +526,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='';
-const BUILD='0830-2331';
+const BUILD='0831-0009';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -944,55 +944,6 @@ function makeOrder(){
     for(const k in all){ const r=all[k]; if(r&&r.buf)useRec(k,r); else if(r instanceof Blob){PICB[k]=r;PIC[k]=URL.createObjectURL(r)} }
   }catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
 
-  /* 第二段:重启后核对上次复制的照片是否全都还在,全在才把原图换成引用(腾空间) */
-  try{
-    const plan=await idbGet('__plan');
-    const mark=(document.cookie.match(/ss_moved=(\d+)/)||[])[1];
-    if(mark&&!plan){
-      document.cookie='ss_moved=;max-age=0;path=/';
-      setTimeout(()=>alert('⚠️ 大仓库连计划表都没留住 —— IndexedDB 在你手机上重启后会被清空,这条路走不通。\n\n你的照片一张没动,全都还在。我换别的办法。'),600);
-    }
-    if(plan&&plan.phase==='written'&&plan.items&&plan.items.length){
-      let alive=0, dead=0;
-      for(const it of plan.items){
-        const r=await picGet(it.pid);
-        if(r&&r.buf&&r.buf.byteLength>0){ useRec(it.pid,r); alive++ } else dead++;
-      }
-      if(dead===0){
-        plan.items.forEach(it=>setByPath(it.path,it.pid));
-        const okSave=persist();
-        if(okSave){
-          await idbSet('__plan',{phase:'done'});
-          document.cookie='ss_moved=;max-age=0;path=/';
-          setTimeout(()=>alert(`✅ 搬运完成!${alive} 张照片经受住了重启考验,已经从满掉的小仓库里挪出去了。\n现在可以放心继续传照片。`),600);
-        }else{
-          setTimeout(()=>alert('照片是好的,但写回目录失败了,原样保留。再重开一次试试。'),600);
-        }
-      }else{
-        document.cookie='ss_moved=;max-age=0;path=/';
-        setTimeout(()=>alert(`⚠️ ${dead} 张没能留住,大仓库靠不住。\n原图一张没动,你的照片都在。我不会再往那边搬了。`),600);
-        await idbSet('__plan',{phase:'failed'});
-      }
-    }
-  }catch(e){}
-
-  /* 老逻辑:副本对账 */
-  let saved=0, rescued=0;
-  for(const id in pend){
-    if(PIC[id]){ delete pend[id]; saved++; continue; }
-    try{
-      const rec=dataURLtoBytes(pend[id]);
-      await picPut(id,rec);
-      const back=await picGet(id);
-      if(back&&back.buf&&back.buf.byteLength===rec.buf.byteLength){ useRec(id,back); rescued++; }
-      else throw 0;
-    }catch(e){
-      PIC[id]=pend[id];                       // 大仓库靠不住,就一直用副本显示
-      PICERR=PICERR||'大仓库存不住,已改用备用副本';
-    }
-  }
-  if(saved||rescued)sv(KP,pend);
-  render();                                  // 先画,别让她等
   if(PICERR)render();
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch{}
   persist(); render();
@@ -1113,7 +1064,9 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
-   <div class="blk"><div class="bl">☁️ 云端照片(阿里云 OSS)</div>
+   <div class="blk"><div class="bl">☁️ 云端照片 ${ossOK()?'· <span style="color:#7ab89a;font-weight:400">已连接</span>':''}
+     <button id="oToggle" style="float:right;font-size:11.5px;color:var(--hot2);font-weight:700">${ossOK()?'修改':'去设置'}</button></div>
+     <div id="oPanel" class="${ossOK()?'hide':''}">
      <div class="f2" style="margin-top:8px">
        <div class="f"><label>Bucket 名字</label><input id="oBucket" placeholder="meishaotu" value="${esc(ossCfg().bucket||'')}"></div>
        <div class="f"><label>地域</label><input id="oRegion" placeholder="oss-cn-shanghai" value="${esc(ossCfg().region||'oss-cn-shanghai')}"></div>
@@ -1122,10 +1075,10 @@ function rHome(){
      <div class="f"><label>AccessKey Secret</label><input id="oSk" type="password" placeholder="只存在这台手机上" value="${esc(ossCfg().sk||'')}"></div>
      <button class="bigbtn" id="oSave" style="margin:2px 0 8px">保存设置</button>
      <button class="bigbtn" id="oTest" style="margin:0">🧪 测一张(验证能不能用)</button>
-     <div style="font-size:11.5px;color:var(--ink3);padding:8px 4px 0">
-       ${ossOK()?'✅ 已设置,新照片会自动上云':'还没设置,照片仍存在手机里(已经满了)'}</div>
+     </div>
+     ${ossOK()?'':'<div style="font-size:11.5px;color:var(--ink3);padding:8px 4px 0">还没设置,照片存在手机里(容量只有 5MB)</div>'}
    </div>
-   <button class="bigbtn pink" id="hMove">☁️ 把现有照片搬上云</button>
+   ${listBase64().length?`<button class="bigbtn pink" id="hMove">☁️ 还有 ${listBase64().length} 张在手机里,搬上云</button>`:''}
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
    ${PICERR?`<div class="blk" style="background:#ffe9ef"><div class="bl">⚠️ 图库打不开</div><div class="bv" style="font-size:12px">${esc(PICERR)}</div></div>`:''}
    <div id="hQuota" style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
@@ -1212,9 +1165,12 @@ function rHome(){
       const e=await navigator.storage.estimate();
       const mb=n=>Math.round(n/1048576);
       const q=$('#hQuota');
-      const kb=usedKB(), real=kb*2, pct=Math.round(real/5120*100);
-      if(q)q.innerHTML=`照片 ${refPics().length} 张 · 实际占用 ${real} KB / 上限 5120 KB(${pct}%)`
-        +(pct>=90?`<br><b style="color:#d9866f">已经满了,存不进新东西</b>`:'');
+      const kb=usedKB(), local=listBase64().length, cloud=refPics().length-local;
+      if(q)q.innerHTML=`照片 ${refPics().length} 张`
+        + (cloud?` · ☁️ 云端 ${cloud} 张`:'')
+        + (local?` · 📱 手机里还有 ${local} 张`:'')
+        + `<br>手机存储占用 ${Math.round(kb*2)} KB`
+        + (kb*2>4600?' <b style="color:#d9866f">(快满了,把照片搬上云)</b>':'');
     }catch{}
   })();
   $('#oSave').onclick=()=>{
@@ -1239,7 +1195,8 @@ function rHome(){
     }catch(e){ alert('❌ 没通:\n'+(e&&e.message||e)+'\n\n多半是跨域(CORS)没配,或者钥匙/地域填错。') }
     b.textContent='🧪 测一张(验证能不能用)';
   };
-  $('#hMove').onclick=async()=>{
+  const tg=$('#oToggle'); if(tg)tg.onclick=()=>$('#oPanel').classList.toggle('hide');
+  const mv=$('#hMove'); if(mv)mv.onclick=async()=>{
     if(!ossOK()){alert('先填好云端设置并「测一张」通过');return}
     const b=$('#hMove');
     const list=listBase64();
