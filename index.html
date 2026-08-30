@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2112';
+const BUILD='0830-2135';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -588,6 +588,7 @@ const picAll=()=>idb().then(db=>new Promise((res,rej)=>{
   c.onerror=()=>rej(c.error);
 }));
 const PIC={}, PICB={};      // id -> blob URL / blob 本体
+let PICERR='';
 const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||''):v);
 /* Safari 的 fetch() 读不了 data: URL,手工解码 */
 function dataURLtoBlob(u){
@@ -840,9 +841,9 @@ function makeOrder(){
     msg:pendingMsg.trim()};
   orders.unshift(o); cart=[]; pendingMsg=''; (async()=>{
   try{ const all=await picAll(); for(const k in all){PICB[k]=all[k];PIC[k]=URL.createObjectURL(all[k])} }
-  catch(err){ setTimeout(()=>toast('图库打不开 😖 '+(err&&err.name||'')),900) }
+  catch(err){ PICERR=(err&&(err.name+': '+err.message))||String(err) }
   render();                                  // 先画,别让她等
-  try{ await movePics() }catch(err){ toast('迁移出错 😖 '+(err&&err.name||'')) }
+  /* 出过事故:自动搬运先停了,等查清楚再说 */
   try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist() }catch{}
   persist(); render();
 })(); closeSheets(); showReceipt(o);
@@ -963,6 +964,7 @@ function rHome(){
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
+   ${PICERR?`<div class="blk" style="background:#ffe9ef"><div class="bl">⚠️ 图库打不开</div><div class="bv" style="font-size:12px">${esc(PICERR)}</div></div>`:''}
    <div id="hQuota" style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
      统计中…</div>
    <button class="danger" id="hWipe">清空所有数据</button>
