@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2210';
+const BUILD='0830-2214';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -1500,6 +1500,22 @@ persist(); render();
 if('serviceWorker' in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
+
+/* 自己检查有没有新版:桌面图标不会主动刷新页面,只能让它自己换
+   带上 ?v= 是为了绕开缓存;同一个版本一轮只换一次,不会来回打转 */
+(function(){
+  if(location.protocol!=='https:')return;
+  fetch('./version.txt?t='+Date.now(),{cache:'no-store'})
+    .then(r=>r.ok?r.text():'')
+    .then(v=>{
+      v=(v||'').trim();
+      if(!v||v===BUILD)return;
+      const tried=sessionStorage.getItem('ss.upd');
+      if(tried===v)return;                     // 已经为这个版本跳过一次了,别循环
+      sessionStorage.setItem('ss.upd',v);
+      location.replace(location.pathname+'?v='+v);
+    }).catch(()=>{});
+})();
 </script>
 </body>
 </html>
