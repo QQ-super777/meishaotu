@@ -525,7 +525,7 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-const BUILD='0830-2042';
+const BUILD='0830-2106';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -962,6 +962,8 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
+   <button class="bigbtn" id="hMove">📦 重新搬运照片</button>
+   <button class="bigbtn" id="hDiag">🔧 图库自检</button>
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
    <div id="hQuota" style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
      统计中…</div>
@@ -1052,6 +1054,33 @@ function rHome(){
         +`<br>文字 ${usedKB()} KB · 一共用了 ${mb(e.usage)} MB / 可用 ${mb(e.quota)} MB`;
     }catch{}
   })();
+  $('#hMove').onclick=async()=>{
+    const b=$('#hMove'); b.textContent='搬运中…';
+    try{ await movePics() }catch(e){ alert('搬运出错:\n'+(e&&(e.name+' / '+e.message)||e)) }
+    b.textContent='📦 重新搬运照片';
+  };
+  $('#hDiag').onclick=async()=>{
+    const L=[];
+    const ref=refPics();
+    L.push('数据里引用 '+ref.length+' 张');
+    L.push('  其中老格式(base64) '+ref.filter(v=>String(v).startsWith('data:')).length+' 张');
+    L.push('  其中新格式(p:) '+ref.filter(v=>String(v).startsWith('p:')).length+' 张');
+    L.push('内存图库 '+Object.keys(PIC).length+' 张');
+    try{
+      L.push('① 打开数据库…');
+      const db=await idb(); L.push('   成功,版本 '+db.version+',表:'+[...db.objectStoreNames].join(','));
+      L.push('② 写一张测试图…');
+      const blob=new Blob([new Uint8Array([1,2,3,4])],{type:'image/jpeg'});
+      await picPut('p:__test__',blob); L.push('   写成功');
+      L.push('③ 读回来…');
+      const all=await picAll();
+      L.push('   读到 '+Object.keys(all).length+' 条,测试图'+(all['p:__test__']?'在':'不在'));
+      L.push('④ base64 解码…');
+      try{ const t=dataURLtoBlob('data:image/jpeg;base64,/9j/4AAQSkZJRg=='); L.push('   成功,'+t.size+' 字节') }
+      catch(e){ L.push('   失败:'+e.name+' '+e.message) }
+    }catch(e){ L.push('✗ 出错:'+(e&&(e.name+' / '+e.message)||e)) }
+    alert(L.join('\n'));
+  };
   $('#hDedup').onclick=()=>{
     const seen=new Set(), keep=[];
     dishes.forEach(d=>{
