@@ -526,7 +526,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='';
-const BUILD='0830-2247';
+const BUILD='0830-2257';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -622,7 +622,7 @@ const PIC={}, PICB={};      // id -> blob URL / blob 本体
 const KP='ss.pend.v1';
 let pend=ld(KP,{});         // 刚存进大仓库、还没经过一次重启验证的 base64 副本
 let PICERR='';
-const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||pend[v]||''):v);
+const picURL=v=>!v?'':(String(v).startsWith('p:')?(PIC[v]||pend[v]||''):v);   // http/data 都直接用
 /* Safari 的 fetch() 读不了 data: URL,手工解码 */
 function dataURLtoBlob(u){
   const i=u.indexOf(','), head=u.slice(0,i), body=u.slice(i+1);
@@ -648,7 +648,31 @@ function useRec(id,rec){
    保险二:base64 副本先留在待确认区,等下次开 app 确认 IndexedDB 真的留住了才删 */
 /* 只用 base64 存在菜的记录里 —— 这是唯一在她手机上验证过能跨重启留住的方式。
    IndexedDB 在 iOS 上留不住,试过两轮都丢,不再用。 */
-async function savePic(dataURL){ return dataURL; }
+/* ══ 照片存云端(你自己的 GitHub 仓库) ══
+   app 里只留一条链接,几十字节。容量按 GB 算,换手机也不丢。
+   钥匙只存在你手机本地,不会进代码、不会上传。 */
+const KTOK='ss.ghtok';
+const PHOTO_REPO='QQ-super777/meishaotu-photos';
+const PHOTO_BASE='https://qq-super777.github.io/meishaotu-photos/';
+const ghTok=()=>{try{return localStorage.getItem(KTOK)||''}catch{return ''}};
+async function uploadPic(dataURL){
+  const tok=ghTok(); if(!tok)throw new Error('还没设置上传钥匙');
+  const b64=dataURL.slice(dataURL.indexOf(',')+1);
+  const name='p/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
+  const r=await fetch(`https://api.github.com/repos/${PHOTO_REPO}/contents/${name}`,{
+    method:'PUT',
+    headers:{Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'},
+    body:JSON.stringify({message:'photo',content:b64})
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('上传失败 '+r.status+' '+t.slice(0,120)) }
+  return PHOTO_BASE+name;
+}
+async function savePic(dataURL){
+  if(ghTok()){
+    try{ return await uploadPic(dataURL) }catch(e){ toast('云端上传失败:'+e.message.slice(0,40)); throw e }
+  }
+  return dataURL;                       // 没设钥匙就还是老样子
+}
 /* 死链接(有编号没内容)清成空,免得卡片一直空白 */
 function dropDeadPics(){
   let n=0;
@@ -1069,7 +1093,13 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
-   <button class="bigbtn pink" id="hMove">📦 把照片搬去大仓库</button>
+   <div class="blk"><div class="bl">☁️ 云端照片</div>
+     <div class="f" style="margin:8px 0 0"><label>上传钥匙(只存在这台手机上)</label>
+       <input id="hTok" type="password" placeholder="粘贴小小七给你的那串" value="${esc(ghTok())}"></div>
+     <div style="font-size:11.5px;color:var(--ink3);padding-left:4px">
+       ${ghTok()?'✅ 已设置,新照片会自动存到云端':'还没设置,照片仍存在手机里(已经满了)'}</div>
+   </div>
+   <button class="bigbtn pink" id="hMove">☁️ 把现有照片搬上云</button>
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
    ${PICERR?`<div class="blk" style="background:#ffe9ef"><div class="bl">⚠️ 图库打不开</div><div class="bv" style="font-size:12px">${esc(PICERR)}</div></div>`:''}
    <div id="hQuota" style="text-align:center;color:var(--ink3);font-size:11.5px;padding:2px 0 10px">
@@ -1161,30 +1191,32 @@ function rHome(){
         +(pct>=90?`<br><b style="color:#d9866f">已经满了,存不进新东西</b>`:'');
     }catch{}
   })();
+  $('#hTok').onchange=e=>{
+    const v=e.target.value.trim();
+    try{ v?localStorage.setItem(KTOK,v):localStorage.removeItem(KTOK); toast(v?'钥匙存好了 🔑':'钥匙清掉了'); render() }
+    catch{ alert('存不下钥匙,先搬走几张照片腾点空间') }
+  };
   $('#hMove').onclick=async()=>{
+    if(!ghTok()){alert('先在上面填好上传钥匙');return}
     const b=$('#hMove');
-    try{
-      const list=listBase64();
-      if(!list.length){alert('没有需要搬的照片');return}
-      if(!confirm(`要把 ${list.length} 张照片搬进大仓库吗?\n\n这一步只是复制,原图一张都不动。\n搬完你要完全关掉 app 再打开,确认真的留住了,我才会删原图。`))return;
-      b.textContent='搬运中…';
-      const items=[]; let bad=0;
-      for(const it of list){
-        try{
-          const pid='p:'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-          const rec=dataURLtoBytes(it.data);
-          await picPut(pid,rec);
-          const back=await picGet(pid);
-          if(!back||!back.buf||back.buf.byteLength!==rec.buf.byteLength)throw 0;
-          items.push({path:it.path,pid});
-        }catch(e){ bad++ }
-      }
-      if(!items.length){alert('一张都没写进去,大仓库用不了 😖\n原数据没动,你还是安全的。');b.textContent='📦 把照片搬去大仓库';return}
-      await idbSet('__plan',{phase:'written',items});
-      document.cookie='ss_moved='+items.length+';max-age=31536000;path=/';
-      alert(`已复制 ${items.length} 张进大仓库${bad?`(${bad} 张失败)`:''}。\n\n现在请【完全关掉 app 再打开】。\n重开后我会检查它们是不是真的留住了,确认后才删原图腾空间。`);
-      b.textContent='📦 已复制,请重开 app';
-    }catch(e){ alert('出错:'+(e&&e.message||e)); b.textContent='📦 把照片搬去大仓库'; }
+    const list=listBase64();
+    if(!list.length){alert('没有需要搬的照片 🐾');return}
+    if(!confirm(`要把 ${list.length} 张照片搬到云端吗?\n\n一张一张来,每搬成功一张就立刻存一次、腾出空间。\n中途失败也不要紧,已经搬好的不会退回去。`))return;
+    let ok=0, fail=0;
+    for(let i=0;i<list.length;i++){
+      b.textContent=`搬运中 ${i+1}/${list.length}…`;
+      try{
+        const url=await uploadPic(list[i].data);
+        const r=await fetch(url,{cache:'no-store'});      // 立刻验证真的能取回来
+        if(!r.ok)throw new Error('取不回来');
+        setByPath(list[i].path,url);
+        persist();                                        // 每搬一张就落盘,越搬越有空间
+        ok++;
+      }catch(e){ fail++ }
+    }
+    render();
+    b.textContent='☁️ 把现有照片搬上云';
+    alert(`搬好 ${ok} 张${fail?`,失败 ${fail} 张(原图还在,可以再点一次重试)`:''}。`);
   };
   $('#hDedup').onclick=()=>{
     const seen=new Set(), keep=[];
