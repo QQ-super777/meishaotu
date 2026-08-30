@@ -1,7 +1,7 @@
 /* 离线缓存:第一次打开之后存进手机,github 连不上也照样能用
    策略:页面走「先联网、连不上再吃缓存」,图片走「先缓存、没有再联网」
    这样既能拿到我推的新版,又不怕断网 */
-const CACHE = 'meishaotu-0830-2106';
+const CACHE = 'meishaotu-0830-2112';
 const CORE = [
   './',
   './index.html',
@@ -31,8 +31,9 @@ self.addEventListener('fetch', e => {
 
   if (isPage) {
     // 先联网拿最新的,拿到就顺手更新缓存;连不上就用上次存的
+    /* 绕开 GitHub 给的 10 分钟浏览器缓存,否则永远拿不到新版 */
     e.respondWith(
-      fetch(req)
+      fetch(new Request(req.url,{cache:'reload'}))
         .then(r => {
           const copy = r.clone();
           caches.open(CACHE).then(c => c.put('./index.html', copy));
