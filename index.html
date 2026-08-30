@@ -526,7 +526,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='';
-const BUILD='0830-2257';
+const BUILD='0830-2331';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -648,30 +648,50 @@ function useRec(id,rec){
    保险二:base64 副本先留在待确认区,等下次开 app 确认 IndexedDB 真的留住了才删 */
 /* 只用 base64 存在菜的记录里 —— 这是唯一在她手机上验证过能跨重启留住的方式。
    IndexedDB 在 iOS 上留不住,试过两轮都丢,不再用。 */
-/* ══ 照片存云端(你自己的 GitHub 仓库) ══
-   app 里只留一条链接,几十字节。容量按 GB 算,换手机也不丢。
-   钥匙只存在你手机本地,不会进代码、不会上传。 */
-const KTOK='ss.ghtok';
-const PHOTO_REPO='QQ-super777/meishaotu-photos';
-const PHOTO_BASE='https://qq-super777.github.io/meishaotu-photos/';
-const ghTok=()=>{try{return localStorage.getItem(KTOK)||''}catch{return ''}};
+/* ══ 照片存云端:阿里云 OSS(你自己的账号) ══
+   app 里只留一条链接。用表单直传(PostObject),浏览器友好。
+   钥匙只存在你手机本地,不进代码、不上传。 */
+const KOSS='ss.oss.v1';
+const ossCfg=()=>{try{return JSON.parse(localStorage.getItem(KOSS)||'{}')}catch{return {}}};
+const ossOK=()=>{const c=ossCfg();return !!(c.bucket&&c.region&&c.ak&&c.sk)};
+const b64u=a=>btoa(String.fromCharCode(...new Uint8Array(a)));
+async function hmacSha1(key,msg){
+  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(key),
+    {name:'HMAC',hash:'SHA-1'},false,['sign']);
+  return b64u(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg)));
+}
+function dataURLtoBlob2(u){
+  const i=u.indexOf(','), head=u.slice(0,i), bin=atob(u.slice(i+1));
+  const arr=new Uint8Array(bin.length);
+  for(let n=0;n<bin.length;n++)arr[n]=bin.charCodeAt(n);
+  return new Blob([arr],{type:(head.match(/:(.*?);/)||[])[1]||'image/jpeg'});
+}
 async function uploadPic(dataURL){
-  const tok=ghTok(); if(!tok)throw new Error('还没设置上传钥匙');
-  const b64=dataURL.slice(dataURL.indexOf(',')+1);
-  const name='p/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
-  const r=await fetch(`https://api.github.com/repos/${PHOTO_REPO}/contents/${name}`,{
-    method:'PUT',
-    headers:{Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'},
-    body:JSON.stringify({message:'photo',content:b64})
-  });
-  if(!r.ok){ const t=await r.text(); throw new Error('上传失败 '+r.status+' '+t.slice(0,120)) }
-  return PHOTO_BASE+name;
+  const c=ossCfg();
+  if(!ossOK())throw new Error('还没填云端设置');
+  const host=`https://${c.bucket}.${c.region}.aliyuncs.com`;
+  const key='p/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
+  const expire=new Date(Date.now()+300000).toISOString().replace(/\.\d+/,'');
+  const policy=btoa(JSON.stringify({expiration:expire,
+    conditions:[{bucket:c.bucket},['content-length-range',0,10485760],['starts-with','$key','p/']]}));
+  const sig=await hmacSha1(c.sk,policy);
+  const fd=new FormData();
+  fd.append('key',key);
+  fd.append('OSSAccessKeyId',c.ak);
+  fd.append('policy',policy);
+  fd.append('signature',sig);
+  fd.append('success_action_status','200');
+  fd.append('Content-Type','image/jpeg');
+  fd.append('file',dataURLtoBlob2(dataURL),'photo.jpg');
+  const r=await fetch(host+'/',{method:'POST',body:fd});
+  if(!r.ok){ const t=await r.text(); throw new Error(r.status+' '+t.replace(/<[^>]+>/g,' ').slice(0,120)) }
+  return host+'/'+key;
 }
 async function savePic(dataURL){
-  if(ghTok()){
-    try{ return await uploadPic(dataURL) }catch(e){ toast('云端上传失败:'+e.message.slice(0,40)); throw e }
+  if(ossOK()){
+    try{ return await uploadPic(dataURL) }catch(e){ toast('上传失败:'+String(e.message).slice(0,45)); throw e }
   }
-  return dataURL;                       // 没设钥匙就还是老样子
+  return dataURL;
 }
 /* 死链接(有编号没内容)清成空,免得卡片一直空白 */
 function dropDeadPics(){
@@ -1093,11 +1113,17 @@ function rHome(){
    <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
-   <div class="blk"><div class="bl">☁️ 云端照片</div>
-     <div class="f" style="margin:8px 0 0"><label>上传钥匙(只存在这台手机上)</label>
-       <input id="hTok" type="password" placeholder="粘贴小小七给你的那串" value="${esc(ghTok())}"></div>
-     <div style="font-size:11.5px;color:var(--ink3);padding-left:4px">
-       ${ghTok()?'✅ 已设置,新照片会自动存到云端':'还没设置,照片仍存在手机里(已经满了)'}</div>
+   <div class="blk"><div class="bl">☁️ 云端照片(阿里云 OSS)</div>
+     <div class="f2" style="margin-top:8px">
+       <div class="f"><label>Bucket 名字</label><input id="oBucket" placeholder="meishaotu" value="${esc(ossCfg().bucket||'')}"></div>
+       <div class="f"><label>地域</label><input id="oRegion" placeholder="oss-cn-shanghai" value="${esc(ossCfg().region||'oss-cn-shanghai')}"></div>
+     </div>
+     <div class="f"><label>AccessKey ID</label><input id="oAk" placeholder="LTAI…" value="${esc(ossCfg().ak||'')}"></div>
+     <div class="f"><label>AccessKey Secret</label><input id="oSk" type="password" placeholder="只存在这台手机上" value="${esc(ossCfg().sk||'')}"></div>
+     <button class="bigbtn" id="oSave" style="margin:2px 0 8px">保存设置</button>
+     <button class="bigbtn" id="oTest" style="margin:0">🧪 测一张(验证能不能用)</button>
+     <div style="font-size:11.5px;color:var(--ink3);padding:8px 4px 0">
+       ${ossOK()?'✅ 已设置,新照片会自动上云':'还没设置,照片仍存在手机里(已经满了)'}</div>
    </div>
    <button class="bigbtn pink" id="hMove">☁️ 把现有照片搬上云</button>
    <button class="bigbtn" id="hDedup">🧹 清理重复的菜</button>
@@ -1191,13 +1217,30 @@ function rHome(){
         +(pct>=90?`<br><b style="color:#d9866f">已经满了,存不进新东西</b>`:'');
     }catch{}
   })();
-  $('#hTok').onchange=e=>{
-    const v=e.target.value.trim();
-    try{ v?localStorage.setItem(KTOK,v):localStorage.removeItem(KTOK); toast(v?'钥匙存好了 🔑':'钥匙清掉了'); render() }
-    catch{ alert('存不下钥匙,先搬走几张照片腾点空间') }
+  $('#oSave').onclick=()=>{
+    const c={bucket:$('#oBucket').value.trim(),region:$('#oRegion').value.trim(),
+             ak:$('#oAk').value.trim(),sk:$('#oSk').value.trim()};
+    try{ localStorage.setItem(KOSS,JSON.stringify(c)); toast('设置存好了 🔑'); render() }
+    catch{ alert('存不下,说明手机存储真的满了。先点下面「测一张」确认能用,然后直接搬运,搬完就有空间了。') }
+  };
+  $('#oTest').onclick=async()=>{
+    const b=$('#oTest'); b.textContent='测试中…';
+    try{
+      const c={bucket:$('#oBucket').value.trim(),region:$('#oRegion').value.trim(),
+               ak:$('#oAk').value.trim(),sk:$('#oSk').value.trim()};
+      try{ localStorage.setItem(KOSS,JSON.stringify(c)) }catch{}
+      const cv=document.createElement('canvas'); cv.width=cv.height=200;
+      const g=cv.getContext('2d'); g.fillStyle='#f5dbe1'; g.fillRect(0,0,200,200);
+      g.fillStyle='#ff85a8'; g.font='28px sans-serif'; g.fillText('OK',70,110);
+      const url=await uploadPic(cv.toDataURL('image/jpeg',.7));
+      const r=await fetch(url,{cache:'no-store'});
+      alert(r.ok? '✅ 通了!上传成功而且能取回来。\n\n可以点下面「把现有照片搬上云」了。'
+                : '⚠️ 上传成功了,但取不回来('+r.status+')。\n多半是 Bucket 读写权限不是「公共读」。');
+    }catch(e){ alert('❌ 没通:\n'+(e&&e.message||e)+'\n\n多半是跨域(CORS)没配,或者钥匙/地域填错。') }
+    b.textContent='🧪 测一张(验证能不能用)';
   };
   $('#hMove').onclick=async()=>{
-    if(!ghTok()){alert('先在上面填好上传钥匙');return}
+    if(!ossOK()){alert('先填好云端设置并「测一张」通过');return}
     const b=$('#hMove');
     const list=listBase64();
     if(!list.length){alert('没有需要搬的照片 🐾');return}
