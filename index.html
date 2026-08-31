@@ -117,7 +117,6 @@ body{overflow-x:hidden}
 .dish .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
 .dish .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .paws{font-size:11px;letter-spacing:-1.5px;margin-top:3px;height:17px}
-.badge.warn{background:#fff1ec;color:#c9705a;max-width:82%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .badge{
   position:absolute;top:8px;left:8px;background:#fff;border-radius:20px;
   font-size:10.5px;font-weight:700;padding:2px 9px;box-shadow:0 2px 7px rgba(220,140,170,.24);
@@ -479,7 +478,6 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
     <div class="f"><label>下单备注(下次点的时候照着抄)</label><textarea id="seMemo" placeholder="多加一份腐竹、少油"></textarea></div>
     <div class="f2">
       <div class="f"><label>人均大概</label><input id="seAvg" type="number" inputmode="decimal" placeholder="26"></div>
-      <div class="f"><label>要避的雷</label><input id="seWarn" placeholder="油太重"></div>
     </div>
   </div>
 </div>
@@ -533,7 +531,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='', INBOX_N=0;
-const BUILD='0831-1139';
+const BUILD='0831-1143';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -823,12 +821,10 @@ function shopCard(s){
   const line = must ? '⭐ '+must.name
              : s.visits.length ? `去过 ${s.visits.length} 次`
              : '还没去过';
-  const warn = s.warn || '';          // 只认她亲手写的避雷,不替她下结论
   return `<div class="dish" data-s="${s.id}">
     <div class="pic s-${s.kind}" style="${ps.length===1?`background-image:url(${ps[0]})`:''}">${ps.length?'':ico}
       ${ps.length>1?`<div class="mos m${ps.length}">${ps.map(u=>`<i style="background-image:url(${u})"></i>`).join('')}</div>`:''}
       <span class="srctag">${SRC[s.kind].e} ${SRC[s.kind].n}</span>
-      ${warn?`<span class="badge warn">⚠️ ${esc(warn)}</span>`:''}
     </div>
     <div class="bd"><div class="nm">${esc(s.name)}</div>
       <div class="mt">${esc(line)}</div></div></div>`;
@@ -1487,7 +1483,6 @@ function openShop(id){
   $('#svBody').innerHTML=`
    <div class="vh"><span class="n">${SRC[s.kind].e} ${esc(s.name)}</span></div>
    <div class="vmeta">${esc(meta.join(' · '))}</div>
-   ${s.warn?`<div class="blk"><div class="bl">⚠️ 避雷</div><div class="bv">${esc(s.warn)}</div></div>`:''}
    <div class="blk"><div class="bl">📝 下单备注</div>
      <div class="bv">${s.memo?esc(s.memo):'<span style="color:var(--ink3)">还没写。点右上角「改」加一句,下次点的时候照着抄</span>'}</div>
      ${s.memo?`<button class="bigbtn" id="svCopy" style="margin:12px 0 0;padding:11px">📋 复制备注</button>`:''}
@@ -1551,14 +1546,14 @@ function openShopEdit(id){
   $('#seTitle').textContent=id?'改这家店':'加一家店';
   setSeKind(s.kind||(fOut==='restaurant'?'restaurant':'delivery'));
   $('#seName').value=s.name||''; $('#seMemo').value=s.memo||'';
-  $('#seAvg').value=s.avg||''; $('#seWarn').value=s.warn||'';
+  $('#seAvg').value=s.avg||'';
   openSheet($('#shShopEdit'));
   if(!id)setTimeout(()=>$('#seName').focus(),340);
 }
 $('#seSave').onclick=()=>{
   const name=$('#seName').value.trim();
   if(!name){toast('给它起个名先 😅');$('#seName').focus();return}
-  const f={name,kind:seKind,memo:$('#seMemo').value.trim(),avg:+$('#seAvg').value||0,warn:$('#seWarn').value.trim()};
+  const f={name,kind:seKind,memo:$('#seMemo').value.trim(),avg:+$('#seAvg').value||0};
   if(seId){
     const s=shopOf(seId); Object.assign(s,f);
     shopDishes(seId).forEach(d=>{d.shop=name;d.src=seKind});   // 菜跟着店走
@@ -1602,7 +1597,6 @@ function roll(){
        <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${SRC[s.kind].e} ${esc(line.join(' · ')||'还没去过')}</div>
        ${must?`<div style="font-size:14px;margin-bottom:4px">⭐ 必点 ${esc(must.name)} ${paw(must.paws)}</div>`:''}
        ${s.memo?`<div style="font-size:13px;color:var(--ink2);margin-bottom:4px">📝 ${esc(s.memo)}</div>`:''}
-       ${s.warn?`<div style="font-size:13px;color:#d9866f;margin-bottom:4px">⚠️ ${esc(s.warn)}</div>`:''}
        <div style="height:14px"></div></div>
      <button class="bigbtn pink" id="rollGo">✅ 就它了</button>
      <button class="bigbtn" id="rollOpen">看看这家</button>`;
