@@ -107,6 +107,12 @@ body{overflow-x:hidden}
 .s-delivery{background-color:var(--cream)}
 .s-restaurant{background-color:var(--apricot)}
 .s-drink{background-color:#ece2f7}
+/* 店卡封面拼图:一家店有几张照片就拼几格 */
+.mos{position:absolute;inset:0;display:grid;gap:2px}
+.mos i{display:block;background-size:cover;background-position:center;background-color:#fff4f8}
+.mos.m2{grid-template-columns:1fr 1fr}
+.mos.m3,.mos.m4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.mos.m3 i:first-child{grid-row:span 2}
 .dish .bd{padding:9px 12px 12px}
 .dish .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
 .dish .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -525,8 +531,8 @@ const SRC={
   zhe:{n:'哲大厨',e:'👨‍🍳'}, me:{n:'兔老板',e:'🐰'},
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
-let NEWVER='';
-const BUILD='0831-0009';
+let NEWVER='', INBOX_N=0;
+const BUILD='0831-0907';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -794,6 +800,14 @@ function render(){
 }
 
 /* ── 第一格:外面吃(店卡) ── */
+/* 这家店能凑出几张照片:自己拍的排头,然后按好吃程度 */
+function shopPics(s){
+  const out=[];
+  const add=v=>{const u=picURL(v); if(u&&!out.includes(u))out.push(u)};
+  add(s.cover);
+  shopDishes(s.id).filter(d=>d.cover).sort((a,b)=>(b.paws||0)-(a.paws||0)).forEach(d=>add(d.cover));
+  return out.slice(0,4);
+}
 /* 店卡的图:自己拍的 > 这家最高分那道菜的图 > 自动配的图标兜底 */
 function shopPic(s){
   if(s.cover)return{bg:picURL(s.cover),ico:''};
@@ -804,13 +818,14 @@ function shopPic(s){
 }
 /* 卡面只留店名 + 一行,人均/上次/避雷都在店详情里 */
 function shopCard(s){
-  const {must,bad}=shopStats(s), {bg,ico}=shopPic(s);
+  const {must,bad}=shopStats(s), ps=shopPics(s), {bg,ico}=shopPic(s);
   const line = must ? '⭐ '+must.name
              : s.visits.length ? `去过 ${s.visits.length} 次`
              : '还没去过';
   const warn = s.warn || (bad?bad.name+'一般':'');
   return `<div class="dish" data-s="${s.id}">
-    <div class="pic s-${s.kind}" style="${bg?`background-image:url(${bg})`:''}">${ico}
+    <div class="pic s-${s.kind}" style="${ps.length===1?`background-image:url(${ps[0]})`:''}">${ps.length?'':ico}
+      ${ps.length>1?`<div class="mos m${ps.length}">${ps.map(u=>`<i style="background-image:url(${u})"></i>`).join('')}</div>`:''}
       <span class="srctag">${SRC[s.kind].e} ${SRC[s.kind].n}</span>
       ${warn?`<span class="badge">⚠️</span>`:''}
     </div>
@@ -1061,7 +1076,7 @@ function rHome(){
        <div class="f"><label>他叫</label><input id="sChef" value="${esc(stg.chef)}"></div>
      </div></div>
    <button class="bigbtn" id="hExport">📦 导出一份备份</button>
-   <button class="bigbtn pink" id="hPull">📥 拉一批小小七整理好的</button>
+   ${INBOX_N?`<button class="bigbtn pink" id="hPull">📥 小小七整理好了 ${INBOX_N} 条,拉进来</button>`:''}
    <label class="bigbtn" for="hFile" style="display:block;text-align:center">📂 从备份文件恢复</label>
    <input type="file" id="hFile" accept="application/json,.json" class="hide">
    <div class="blk"><div class="bl">☁️ 云端照片 ${ossOK()?'· <span style="color:#7ab89a;font-weight:400">已连接</span>':''}
@@ -1150,7 +1165,7 @@ function rHome(){
     r.readAsText(f);
   };
   /* 小小七在电脑上整理好的数据,放在同一个网址下,点一下直接拉进来 */
-  $('#hPull').onclick=async()=>{
+  const pl=$('#hPull'); if(pl)pl.onclick=async()=>{
     const btn=$('#hPull'); btn.textContent='拉取中…';
     try{
       const r=await fetch('./inbox.json?t='+Date.now(),{cache:'no-store'});
@@ -1625,6 +1640,10 @@ if('serviceWorker' in navigator&&location.protocol==='https:'){
   if(location.protocol!=='https:')return;
   fetch('./version.txt?t='+Date.now(),{cache:'no-store'})
     .then(r=>r.ok?r.text():'').then(v=>{ v=(v||'').trim(); if(v&&v!==BUILD)NEWVER=v; }).catch(()=>{});
+  /* 待导入的有几条,没有就不显示那个按钮 */
+  fetch('./inbox.json?t='+Date.now(),{cache:'no-store'})
+    .then(r=>r.ok?r.json():null)
+    .then(j=>{ const n=(j&&j.dishes||[]).length; if(n){INBOX_N=n; if(view==='home')render()} }).catch(()=>{});
 })();
 </script>
 </body>
