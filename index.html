@@ -117,6 +117,7 @@ body{overflow-x:hidden}
 .dish .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
 .dish .mt{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .paws{font-size:11px;letter-spacing:-1.5px;margin-top:3px;height:17px}
+.badge.warn{background:#fff1ec;color:#c9705a;max-width:82%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .badge{
   position:absolute;top:8px;left:8px;background:#fff;border-radius:20px;
   font-size:10.5px;font-weight:700;padding:2px 9px;box-shadow:0 2px 7px rgba(220,140,170,.24);
@@ -532,7 +533,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='', INBOX_N=0;
-const BUILD='0831-0907';
+const BUILD='0831-1139';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -822,12 +823,12 @@ function shopCard(s){
   const line = must ? '⭐ '+must.name
              : s.visits.length ? `去过 ${s.visits.length} 次`
              : '还没去过';
-  const warn = s.warn || (bad?bad.name+'一般':'');
+  const warn = s.warn || '';          // 只认她亲手写的避雷,不替她下结论
   return `<div class="dish" data-s="${s.id}">
     <div class="pic s-${s.kind}" style="${ps.length===1?`background-image:url(${ps[0]})`:''}">${ps.length?'':ico}
       ${ps.length>1?`<div class="mos m${ps.length}">${ps.map(u=>`<i style="background-image:url(${u})"></i>`).join('')}</div>`:''}
       <span class="srctag">${SRC[s.kind].e} ${SRC[s.kind].n}</span>
-      ${warn?`<span class="badge">⚠️</span>`:''}
+      ${warn?`<span class="badge warn">⚠️ ${esc(warn)}</span>`:''}
     </div>
     <div class="bd"><div class="nm">${esc(s.name)}</div>
       <div class="mt">${esc(line)}</div></div></div>`;
