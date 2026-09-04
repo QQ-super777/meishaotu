@@ -478,7 +478,9 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
     <div class="f"><label>下单备注(下次点的时候照着抄)</label><textarea id="seMemo" placeholder="多加一份腐竹、少油"></textarea></div>
     <div class="f2">
       <div class="f"><label>人均大概</label><input id="seAvg" type="number" inputmode="decimal" placeholder="26"></div>
+      <div class="f"><label>城市(在本地就留空)</label><input id="seCity" placeholder="广州"></div>
     </div>
+    <button class="togg" id="seOff">🎲 这家还参加摇骰子</button>
   </div>
 </div>
 
@@ -531,7 +533,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='', INBOX_N=0;
-const BUILD='0831-1143';
+const BUILD='0903-0909';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -818,6 +820,7 @@ function shopPic(s){
 /* 卡面只留店名 + 一行,人均/上次/避雷都在店详情里 */
 function shopCard(s){
   const {must,bad}=shopStats(s), ps=shopPics(s), {bg,ico}=shopPic(s);
+  const tag = (s.city||'').trim() ? '📍'+s.city.trim() : (s.off?'🚫 不摇':'');
   const line = must ? '⭐ '+must.name
              : s.visits.length ? `去过 ${s.visits.length} 次`
              : '还没去过';
@@ -825,6 +828,7 @@ function shopCard(s){
     <div class="pic s-${s.kind}" style="${ps.length===1?`background-image:url(${ps[0]})`:''}">${ps.length?'':ico}
       ${ps.length>1?`<div class="mos m${ps.length}">${ps.map(u=>`<i style="background-image:url(${u})"></i>`).join('')}</div>`:''}
       <span class="srctag">${SRC[s.kind].e} ${SRC[s.kind].n}</span>
+      ${tag?`<span class="badge">${esc(tag)}</span>`:''}
     </div>
     <div class="bd"><div class="nm">${esc(s.name)}</div>
       <div class="mt">${esc(line)}</div></div></div>`;
@@ -1539,21 +1543,27 @@ $('#svEdit').onclick=()=>{const id=curShop;closeSheets();setTimeout(()=>openShop
 
 /* ── 加店 / 改店 ── */
 let seId=null, seKind='delivery';
+let seOff=0;
+const setSeOff=v=>{seOff=v?1:0;const b=$('#seOff');
+  b.classList.toggle('on',!!seOff);
+  b.textContent=seOff?'🚫 不再摇到这家':'🎲 这家还参加摇骰子'};
 const setSeKind=k=>{seKind=k;$$('#seSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===k))};
 $$('#seSeg button').forEach(b=>b.onclick=()=>setSeKind(b.dataset.s));
+$('#seOff').onclick=()=>setSeOff(!seOff);
 function openShopEdit(id){
   seId=id; const s=(id&&shopOf(id))||{};
   $('#seTitle').textContent=id?'改这家店':'加一家店';
   setSeKind(s.kind||(fOut==='restaurant'?'restaurant':'delivery'));
   $('#seName').value=s.name||''; $('#seMemo').value=s.memo||'';
-  $('#seAvg').value=s.avg||'';
+  $('#seAvg').value=s.avg||''; $('#seCity').value=s.city||''; setSeOff(s.off?1:0);
   openSheet($('#shShopEdit'));
   if(!id)setTimeout(()=>$('#seName').focus(),340);
 }
 $('#seSave').onclick=()=>{
   const name=$('#seName').value.trim();
   if(!name){toast('给它起个名先 😅');$('#seName').focus();return}
-  const f={name,kind:seKind,memo:$('#seMemo').value.trim(),avg:+$('#seAvg').value||0};
+  const f={name,kind:seKind,memo:$('#seMemo').value.trim(),avg:+$('#seAvg').value||0,
+           city:$('#seCity').value.trim(),off:seOff};
   if(seId){
     const s=shopOf(seId); Object.assign(s,f);
     shopDishes(seId).forEach(d=>{d.shop=name;d.src=seKind});   // 菜跟着店走
@@ -1585,8 +1595,12 @@ function roll(){
   }
   if(view==='out'){
     $('#shRoll .ti').textContent=fOut==='restaurant'?'今天去哪家':fOut==='delivery'?'今天点哪家':'今天吃哪家';
-    const pool=shops.filter(s=>fOut==='all'||s.kind===fOut);
-    if(!pool.length)return nope('这一类还没有店可以摇 😿');
+    /* 外地的、标了不再摇的,都不进摇号池 */
+    const pool=shops.filter(s=>(fOut==='all'||s.kind===fOut)&&!s.off&&!(s.city||'').trim());
+    if(!pool.length){
+      const all=shops.filter(s=>fOut==='all'||s.kind===fOut).length;
+      return nope(all? '这一类的店要么在外地、要么被你标了不摇 😿' : '这一类还没有店可以摇 😿');
+    }
     const s=pool[Math.floor(Math.random()*pool.length)];
     const {must,last}=shopStats(s);
     const line=[];
