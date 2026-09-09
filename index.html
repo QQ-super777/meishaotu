@@ -427,7 +427,7 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
     </div>
     <label class="photo" id="ePhoto" for="eFile"><span class="ph">📷</span><span id="ePhotoTip">拍张照 / 选张图</span></label>
     <input type="file" id="eFile" accept="image/*" class="hide">
-    <div class="f"><label>菜名</label><input id="eName" placeholder="糖醋排骨"></div>
+    <div class="f"><label>菜名 <span style="font-weight:600;color:var(--ink3)">· 想不起来就空着</span></label><input id="eName" placeholder="糖醋排骨 / 空着也行"></div>
     <div id="gShop">
       <div class="f2">
         <div class="f"><label id="eShopLb">哪家店</label><input id="eShop" placeholder="店名"></div>
@@ -533,7 +533,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='', INBOX_N=0;
-const BUILD='0903-0909';
+const BUILD='0910-菜名可空';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -577,6 +577,8 @@ const usedKB=()=>{try{return Math.round([K,KSH,KC,KO,KS].reduce((n,k)=>n+((local
 /* ══════════════ 工具 ══════════════ */
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const paw=n=>n?'🐾'.repeat(n):'';
+/* 没写菜名的显示兜底 —— 照片就是它的名字 */
+const dnm=d=>(d&&d.name&&d.name.trim())?d.name:'叫不上名字';
 /* ══ 照片库:放 IndexedDB(几百 MB),localStorage 里只留一个 id ══ */
 let _db=null;
 const idb=()=>new Promise((res,rej)=>{
@@ -750,7 +752,7 @@ const ICONS=[
 ];
 function emo(d){
   if(d.cover)return'';
-  for(const [re,e] of ICONS) if(re.test(d.name)) return e;
+  for(const [re,e] of ICONS) if(re.test(d.name||'')) return e;
   return SRC[d.src].e;
 }
 const get=id=>dishes.find(x=>x.id===id);
@@ -872,7 +874,7 @@ function card(d){
       ${d.fav?'<span class="heart">❤️</span>':''}
       ${homemade(d)?`<button class="plus ${inCart?'in':''}" data-add="${d.id}">＋</button>`:''}
     </div>
-    <div class="bd"><div class="nm">${esc(d.name)}</div>
+    <div class="bd"><div class="nm">${esc(dnm(d))}</div>
       <div class="mt">${esc(d.note||'还没写一句话')}</div>
       <div class="paws">${paw(d.paws)}</div></div></div>`;
 }
@@ -891,7 +893,7 @@ function rKitchen(){
     h+=`<div class="sect"><span class="t">❤️ 招牌</span><span class="n">${fav.length} 道</span></div>
         <div class="signrow">${fav.map(d=>`<div class="sign" data-id="${d.id}">
           <div class="p s-${d.src}" style="${pic(d)}">${emo(d)}</div>
-          <div class="b"><div class="n">${esc(d.name)}</div><div class="p2">${paw(d.paws)}</div></div></div>`).join('')}</div>`;
+          <div class="b"><div class="n">${esc(dnm(d))}</div><div class="p2">${paw(d.paws)}</div></div></div>`).join('')}</div>`;
   }
   if(fKit==='all')h+=`<div class="sect"><span class="t">🍳 会做的</span><span class="n">${list.length} 道</span></div>`;
   h+= list.length?`<div class="grid">${list.map(card).join('')}</div>`
@@ -909,7 +911,7 @@ function rKitchen(){
 function toggleCart(id){
   const d=get(id);
   if(cart.includes(id)){cart=cart.filter(x=>x!==id);toast('拿掉了')}
-  else{cart.push(id);toast(`「${d.name}」加进点单了 🐾`)}
+  else{cart.push(id);toast(`「${dnm(d)}」加进点单了 🐾`)}
   persist();render();
   if($('#shOrder').classList.contains('on'))renderOrder();
 }
@@ -935,7 +937,7 @@ function renderOrder(){
     const items=cart.map(id=>get(id)).filter(Boolean);
     h+=`<div class="sect"><span class="t">🧾 点了这些</span><span class="n">${cart.length} 道</span></div>`;
     h+=items.map(d=>`<div class="cartitem"><div class="ci s-${d.src}" style="${pic(d)}">${emo(d)}</div>
-        <div class="cn"><b>${esc(d.name)}</b><small>${esc(sub(d))}</small></div>
+        <div class="cn"><b>${esc(dnm(d))}</b><small>${esc(sub(d))}</small></div>
         <button class="cx" data-rm="${d.id}">×</button></div>`).join('');
     h+=`<div class="f" style="margin-top:16px"><label>想说点什么(${esc(chefLine(items))})</label>
         <textarea id="oMsg" placeholder="今晚可以吗?我洗碗 🙏">${esc(pendingMsg)}</textarea></div>
@@ -952,7 +954,7 @@ function renderOrder(){
 let pendingMsg='';
 function makeOrder(){
   const o={id:'o'+Math.random().toString(36).slice(2,8),at:today(),
-    items:cart.map(id=>{const d=get(id);return d&&{id,name:d.name,paws:d.paws,src:d.src}}).filter(Boolean),
+    items:cart.map(id=>{const d=get(id);return d&&{id,name:dnm(d),paws:d.paws,src:d.src}}).filter(Boolean),
     msg:pendingMsg.trim()};
   orders.unshift(o); cart=[]; pendingMsg=''; (async()=>{
   try{
@@ -1004,7 +1006,7 @@ function timeline(){
   orders.forEach(o=>ev.push({date:o.at,e:'🧾',
     body:`<b>给${esc(stg.chef)}下了单</b><small>${o.items.map(i=>esc(i.name)).join('、')}</small>`}));
   dishes.forEach(d=>(d.logs||[]).forEach(l=>ev.push({date:l.date,e:'📝',photo:l.photo,
-    body:`<b>${esc(d.name)}</b>${l.text?`<small>${esc(l.text)}</small>`:''}`})));
+    body:`<b>${esc(dnm(d))}</b>${l.text?`<small>${esc(l.text)}</small>`:''}`})));
   return ev.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
 }
 let tlAll=false;
@@ -1042,7 +1044,7 @@ function openSum(){
       <div><div class="v">${shops.length}</div><div class="l">🛵 收录的店</div></div>
     </div>
     ${top.length?`<div class="rk"><div style="font-size:11.5px;color:var(--ink2);font-weight:700;margin-bottom:4px">🏆 猫爪最高</div>
-      ${top.map((d,i)=>`<div class="rank"><span class="i">${i+1}</span><span class="n">${esc(d.name)}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
+      ${top.map((d,i)=>`<div class="rank"><span class="i">${i+1}</span><span class="n">${esc(dnm(d))}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
   </div>
   <div style="height:16px"></div>
   <div style="text-align:center;color:var(--ink2);font-size:12.5px">截图发给他 📲</div>`;
@@ -1067,7 +1069,7 @@ function rHome(){
      <div class="tile"><div class="v">${dishes.filter(d=>d.st==='want').length}</div><div class="l">🔖 种草没吃到</div></div>
    </div>
    ${top.length?`<div class="blk"><div class="bl">🏆 猫爪排行榜</div>${top.map((d,i)=>
-     `<div class="rank"><span class="i">${i+1}</span><span class="n">${SRC[d.src].e} ${esc(d.name)}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
+     `<div class="rank"><span class="i">${i+1}</span><span class="n">${SRC[d.src].e} ${esc(dnm(d))}</span><span class="v">${paw(d.paws)}</span></div>`).join('')}</div>`:''}
    <div class="blk"><div class="bl">📖 吃饭流水</div><div id="tlBox">${drawTimeline()}</div></div>
    <div class="blk"><div class="bl">💸 外面吃大概花过</div><div style="font-size:26px;font-weight:700;color:var(--hot2)">¥ ${spend.toFixed(0)}</div>
      <div style="font-size:11.5px;color:var(--ink3)">按人均 × 去过的次数估的,只能看个大概</div></div>
@@ -1381,7 +1383,9 @@ $('#eFile').onchange=e=>{const f=e.target.files[0];
 let saving=false;
 $('#eSave').onclick=()=>{
   const name=$('#eName').value.trim();
-  if(!name){toast('给它起个名先 😅');$('#eName').focus();return}
+  /* 菜名可以空着 —— 下馆子经常记不住每道菜叫啥,有张照片就够了 */
+  if(!name&&!eCover&&!$('#eNote').value.trim()){
+    toast('给张照片,或者写个名字 📷');$('#eName').focus();return}
   const old=editId?get(editId):null;
   const home=eSrc==='zhe'||eSrc==='me';
   const shopName=home?'':$('#eShop').value.trim();
@@ -1413,10 +1417,10 @@ function openView(id){
   if(d.shop)kv.push(['店',d.shop]);
   if(d.price)kv.push(['价格','¥'+d.price]);
   kv.push(['谁出品',SRC[d.src].e+' '+nameOf(d.src)],['加进菜单',fmt(d.at)]);
-  $('#vTitle').textContent=d.name;
+  $('#vTitle').textContent=dnm(d);
   $('#vBody').innerHTML=`
     <div class="vpic s-${d.src}" style="${pic(d)}">${emo(d)}</div>
-    <div class="vh"><span class="n">${esc(d.name)}</span>${d.fav?'<span style="font-size:20px">❤️</span>':''}</div>
+    <div class="vh"><span class="n">${esc(dnm(d))}</span>${d.fav?'<span style="font-size:20px">❤️</span>':''}</div>
     <div class="vmeta">${esc(sub(d))}${d.st==='want'?' · 🔖 还没吃到':''}</div>
     ${d.st==='done'?`<div class="vpaws">${paw(d.paws)||'<span style="font-size:13px;color:var(--ink3)">还没评分</span>'}</div>`:''}
     ${d.tags&&d.tags.length?`<div class="chips">${d.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
@@ -1467,7 +1471,7 @@ function openView(id){
   $('#vBody').querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{
     d.logs=d.logs.filter(l=>l.id!==b.dataset.dl);persist();openView(id);
   });
-  $('#vDel').onclick=()=>{if(!confirm(`把「${d.name}」从菜单删掉?`))return;
+  $('#vDel').onclick=()=>{if(!confirm(`把「${dnm(d)}」从菜单删掉?`))return;
     dishes=dishes.filter(x=>x.id!==id);cart=cart.filter(x=>x!==id);persist();closeSheets();render();toast('删了')};
   openSheet($('#shView'));
 }
@@ -1507,12 +1511,12 @@ function openShop(id){
    <div class="blk"><div class="bl">🍽️ 我们点过的 <span style="font-weight:400">(${ds.length} 道)</span></div>
      ${sorted.length?sorted.map(d=>`<div class="drow" data-d="${d.id}">
         <span class="dp s-${d.src}" style="${pic(d)}">${emo(d)}</span>
-        <span class="n">${esc(d.name)}${d.fav?' ❤️':''}${d.note?`<small>${esc(d.note)}</small>`:''}</span>
+        <span class="n">${esc(dnm(d))}${d.fav?' ❤️':''}${d.note?`<small>${esc(d.note)}</small>`:''}</span>
         <span class="v">${paw(d.paws)||'还没评'}</span></div>`).join('')
       :`<div style="color:var(--ink3);font-size:13px;padding:4px 0">还没记过这家的菜。点了什么好吃的就加一道 🐾</div>`}
      ${wants.length?wants.map(d=>`<div class="drow" data-d="${d.id}">
         <span class="dp s-${d.src}" style="${pic(d)}">${emo(d)}</span>
-        <span class="n">🔖 ${esc(d.name)}</span><span class="v">还没点过</span></div>`).join(''):''}
+        <span class="n">🔖 ${esc(dnm(d))}</span><span class="v">还没点过</span></div>`).join(''):''}
    </div>
    <button class="bigbtn" id="svAdd">＋ 加一道这家的菜</button>
    <button class="danger" id="svDel">删掉这家店</button>`;
@@ -1585,7 +1589,7 @@ function roll(){
     if(!pool.length)return nope('还没记过奶茶,摇不出来 😿');
     const d=pool[Math.floor(Math.random()*pool.length)];
     box.innerHTML=head(say)+`
-       <div class="big">${esc(d.name)}</div>
+       <div class="big">${esc(dnm(d))}</div>
        <div style="font-size:13px;color:var(--ink2);margin-bottom:8px">${esc([d.shop,d.price?'¥'+d.price:''].filter(Boolean).join(' · ')||'🧋')}</div>
        ${d.tags&&d.tags.length?`<div style="font-size:13px;margin-bottom:6px">${d.tags.map(esc).join('  ')}</div>`:''}
        <div style="font-size:15px;margin-bottom:14px">${paw(d.paws)}</div></div>
@@ -1622,11 +1626,11 @@ function roll(){
     if(!pool.length)return nope('厨房里还没菜可以摇 😿');
     const d=pool[Math.floor(Math.random()*pool.length)];
     box.innerHTML=head(say)+`
-       <div class="big">${esc(d.name)}</div>
+       <div class="big">${esc(dnm(d))}</div>
        <div style="font-size:13px;color:var(--ink2);margin-bottom:4px">${SRC[d.src].e} ${esc(nameOf(d.src))}${d.note?' · '+esc(d.note):''}</div>
        <div style="font-size:15px;margin-bottom:16px">${paw(d.paws)}</div></div>
      <button class="bigbtn pink" id="rollAdd">＋ 就它了,加进点单</button>`;
-    $('#rollAdd').onclick=()=>{if(!cart.includes(d.id)){cart.push(d.id);persist();render()}closeSheets();toast(`「${d.name}」加进点单了 🐾`)};
+    $('#rollAdd').onclick=()=>{if(!cart.includes(d.id)){cart.push(d.id);persist();render()}closeSheets();toast(`「${dnm(d)}」加进点单了 🐾`)};
   }
   openSheet($('#shRoll'));
 }
