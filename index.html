@@ -198,6 +198,26 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
 .photo:not(.has)::after{content:"";position:absolute;inset:8px;border:2px dashed #ffd0de;border-radius:18px}
 .photo .ph{font-size:32px}
 .photo .x{position:absolute;top:9px;right:9px;background:#fff;color:var(--ink);width:29px;height:29px;border-radius:50%;font-size:15px;line-height:29px;text-align:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:2}
+.photo .mb{position:absolute;left:9px;top:9px;background:rgba(255,255,255,.93);color:var(--ink2);font-size:11px;font-weight:700;padding:3px 10px;border-radius:13px;z-index:2}
+/* 一道菜的多张图:主图一张,其余排在下面 */
+.piclab{font-size:12.5px;color:var(--ink2);font-weight:700;margin:-7px 0 8px}
+.piclab span{font-weight:600;color:var(--ink3);font-size:11.5px}
+.picrow{display:flex;gap:11px;overflow-x:auto;padding:5px 3px 14px;-webkit-overflow-scrolling:touch}
+.picrow .pt{width:74px;height:74px;flex:0 0 auto;border-radius:18px;background:#fff center/cover;box-shadow:var(--sh);position:relative;cursor:pointer;transition:transform .14s}
+.picrow .pt:active{transform:scale(.92)}
+.picrow .pt .x{position:absolute;top:-5px;right:-5px;background:#fff;color:var(--ink);width:23px;height:23px;border-radius:50%;font-size:12px;line-height:23px;text-align:center;font-weight:700;box-shadow:0 2px 7px rgba(0,0,0,.2);z-index:2}
+.picrow .add{width:74px;height:74px;flex:0 0 auto;border-radius:18px;background:#fff;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;font-size:26px;color:#ffb3cb;cursor:pointer}
+/* 详情里的小图条 */
+.vthumbs{display:flex;gap:9px;overflow-x:auto;margin:-8px 0 14px;padding:3px 2px 5px}
+.vthumbs i{display:block;width:64px;height:64px;flex:0 0 auto;border-radius:16px;background:#fff center/cover;box-shadow:var(--sh);cursor:pointer}
+.vthumbs i.on{box-shadow:0 0 0 2.5px var(--hot)}
+/* 看大图 */
+.lb{position:fixed;inset:0;background:rgba(40,26,32,.94);z-index:55;display:none;align-items:center;justify-content:center;flex-direction:column}
+.lb.on{display:flex}
+.lb img{max-width:93vw;max-height:74vh;border-radius:18px}
+.lb .nav{display:flex;align-items:center;gap:24px;margin-top:18px;color:#fff;font-size:13px;font-weight:600}
+.lb .nav button{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:20px}
+.lb .tip{color:rgba(255,255,255,.5);font-size:11.5px;margin-top:12px}
 .pawpick{display:flex;gap:5px;align-items:center;background:#fff;border-radius:18px;padding:9px 13px;box-shadow:0 2px 8px rgba(255,150,180,.13)}
 .pawpick button{font-size:26px;line-height:1;filter:grayscale(1) opacity(.25);transition:all .14s}
 .pawpick button.on{filter:none;transform:scale(1.1)}
@@ -427,6 +447,11 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
     </div>
     <label class="photo" id="ePhoto" for="eFile"><span class="ph">📷</span><span id="ePhotoTip">拍张照 / 选张图</span></label>
     <input type="file" id="eFile" accept="image/*" class="hide">
+    <div id="gPics" class="hide">
+      <div class="piclab">📸 过程图 <span>· 可以一次选好几张 · 点小图换成主图 · 菜单上只露主图</span></div>
+      <div class="picrow" id="ePicRow"></div>
+      <input type="file" id="ePicFile" accept="image/*" multiple class="hide">
+    </div>
     <div class="f"><label>菜名 <span style="font-weight:600;color:var(--ink3)">· 想不起来就空着</span></label><input id="eName" placeholder="糖醋排骨 / 空着也行"></div>
     <div id="gShop">
       <div class="f2">
@@ -514,6 +539,13 @@ nav .dot{position:absolute;top:-1px;right:8px;min-width:18px;height:18px;border-
   </div>
 </div>
 
+<!-- 看大图 -->
+<div class="lb" id="lb">
+  <img id="lbImg" alt="">
+  <div class="nav"><button id="lbPrev">‹</button><span id="lbN"></span><button id="lbNext">›</button></div>
+  <div class="tip">点一下空白处关掉</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -533,7 +565,7 @@ const SRC={
   delivery:{n:'外卖',e:'🛵'}, restaurant:{n:'馆子',e:'🍽️'}, drink:{n:'奶茶',e:'🧋'},
 };
 let NEWVER='', INBOX_N=0;
-const BUILD='0910-菜名可空';
+const BUILD='1025-一菜多图';
 const DRINKTAGS=['🧋 珍珠','🥥 椰果','🌾 燕麦奶','🍵 茶味重','🥛 奶味重','🍨 冰沙','🍬 少糖','🍬 三分糖','🍬 五分糖','🍬 七分糖','🍬 全糖','🚫 无糖','❄️ 去冰','🧊 少冰','🧊 正常冰','🌡️ 常温','🔥 热'];
 const TAGS=['🌶️ 辣','🥬 清淡','🍲 汤','🍜 面','🍚 饭','🥩 硬菜','🐟 海鲜','⚡ 快手','🍰 甜','🧊 凉菜'];
 
@@ -604,6 +636,7 @@ function listBase64(){
   const out=[];
   dishes.forEach(d=>{
     if(d.cover&&String(d.cover).startsWith('data:'))out.push({path:'d|'+d.id+'|cover',data:d.cover});
+    (d.pics||[]).forEach((p,i)=>{ if(p&&String(p).startsWith('data:'))out.push({path:'d|'+d.id+'|pic|'+i,data:p}) });
     (d.logs||[]).forEach(l=>{ if(l.photo&&String(l.photo).startsWith('data:'))out.push({path:'d|'+d.id+'|log|'+l.id,data:l.photo}) });
   });
   shops.forEach(x=>{ if(x.cover&&String(x.cover).startsWith('data:'))out.push({path:'s|'+x.id+'|cover',data:x.cover}) });
@@ -614,6 +647,7 @@ function setByPath(path,val){
   if(a[0]==='d'){
     const d=dishes.find(x=>x.id===a[1]); if(!d)return false;
     if(a[2]==='cover'){d.cover=val;return true}
+    if(a[2]==='pic'){ if(!Array.isArray(d.pics)||!d.pics[+a[3]])return false; d.pics[+a[3]]=val; return true }
     const l=(d.logs||[]).find(y=>y.id===a[3]); if(!l)return false; l.photo=val; return true;
   }
   const x=shops.find(y=>y.id===a[1]); if(!x)return false; x.cover=val; return true;
@@ -706,7 +740,9 @@ async function savePic(dataURL){
 function dropDeadPics(){
   let n=0;
   const f=v=>{ if(v&&String(v).startsWith('p:')&&!PIC[v]){n++;return ''} return v };
-  dishes.forEach(d=>{ d.cover=f(d.cover); (d.logs||[]).forEach(l=>{l.photo=f(l.photo)}) });
+  dishes.forEach(d=>{ d.cover=f(d.cover);
+    if(Array.isArray(d.pics))d.pics=d.pics.map(f).filter(Boolean);
+    (d.logs||[]).forEach(l=>{l.photo=f(l.photo)}) });
   shops.forEach(x=>{ x.cover=f(x.cover) });
   if(n){persist();render()}
   return n;
@@ -714,7 +750,8 @@ function dropDeadPics(){
 /* 数据里一共引用了多少张照片(用来跟图库对账) */
 const refPics=()=>{
   const a=[];
-  dishes.forEach(d=>{ if(d.cover)a.push(d.cover); (d.logs||[]).forEach(l=>{if(l.photo)a.push(l.photo)}) });
+  dishes.forEach(d=>{ if(d.cover)a.push(d.cover); (d.pics||[]).forEach(p=>{if(p)a.push(p)});
+    (d.logs||[]).forEach(l=>{if(l.photo)a.push(l.photo)}) });
   shops.forEach(x=>{ if(x.cover)a.push(x.cover) });
   return a;
 };
@@ -732,6 +769,7 @@ async function movePics(){
     try{ const id=await savePic(v); ok++; return id }catch(e){ bad++; return v }   // 搬不动就留着,不能弄丢
   };
   for(const d of dishes){ d.cover=await mv(d.cover);
+    if(Array.isArray(d.pics))for(let i=0;i<d.pics.length;i++) d.pics[i]=await mv(d.pics[i]);
     for(const l of (d.logs||[])) l.photo=await mv(l.photo); }
   for(const x of shops) x.cover=await mv(x.cover);
   if(ok||bad){
@@ -1111,7 +1149,8 @@ function rHome(){
   $('#hExport').onclick=async()=>{
     toast('打包中,照片多的话要等一会儿…');
     const ds=[];
-    for(const d of dishes){ const c={...d,cover:await asB64(d.cover),logs:[]};
+    for(const d of dishes){ const c={...d,cover:await asB64(d.cover),pics:[],logs:[]};
+      for(const p of (d.pics||[])){ const b=await asB64(p); if(b)c.pics.push(b) }
       for(const l of (d.logs||[])) c.logs.push({...l,photo:await asB64(l.photo)});
       ds.push(c); }
     const sh=[]; for(const x of shops) sh.push({...x,cover:await asB64(x.cover)});
@@ -1263,9 +1302,12 @@ $$('.shead .cl').forEach(b=>b.onclick=closeSheets);
 $('#cpCancel').onclick=e=>{e.stopPropagation();cp.cb=null;closeOne($('#shCrop'))};
 
 /* ── 加菜 / 改菜 ── */
-let editId=null,eSrc='zhe',eSt='done',ePaws=0,eFav=0,eCover='',eTagSel=[];
+let editId=null,eSrc='zhe',eSt='done',ePaws=0,eFav=0,eCover='',eTagSel=[],ePics=[];
+const MAXPICS=9;                 // 主图之外最多再放 9 张,免得 localStorage 撑爆
 const setSrc=s=>{eSrc=s;$$('#eSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
   $('#gShop').classList.toggle('hide',s==='zhe'||s==='me');
+  /* 过程图只给自家厨房 —— 外卖馆子一道菜一张就够了 */
+  $('#gPics').classList.toggle('hide',!(s==='zhe'||s==='me'));
   $('#eShopLb').textContent=s==='drink'?'哪家奶茶店(可不填)':'哪家店';
   drawTags();};
 const setSt=s=>{eSt=s;$$('#eStg button').forEach(b=>b.classList.toggle('on',b.dataset.st===s));$('#fPaws').classList.toggle('hide',s==='want')};
@@ -1278,8 +1320,30 @@ function setCover(d){
   p.querySelector('.ph').style.display=d?'none':'';$('#ePhotoTip').style.display=d?'none':'';
   let x=p.querySelector('.x');
   if(d&&!x){x=document.createElement('span');x.className='x';x.textContent='×';
-    x.onclick=e=>{e.preventDefault();e.stopPropagation();setCover('')};p.appendChild(x)}
+    x.onclick=e=>{e.preventDefault();e.stopPropagation();
+      /* 删掉主图:后面还有过程图的话,顶一张上来当主图 */
+      setCover(ePics.length?ePics.shift():''); drawPics()};p.appendChild(x)}
   if(!d&&x)x.remove();
+  let b=p.querySelector('.mb');
+  if(d&&ePics.length&&!b){b=document.createElement('span');b.className='mb';b.textContent='主图';p.appendChild(b)}
+  if((!d||!ePics.length)&&b)b.remove();
+}
+/* 过程图那一条 */
+function drawPics(){
+  const row=$('#ePicRow');
+  row.innerHTML=ePics.map((p,i)=>`<div class="pt" data-i="${i}" style="background-image:url(${picURL(p)})"><span class="x" data-x="${i}">×</span></div>`).join('')
+    +(ePics.length<MAXPICS?`<label class="add" for="ePicFile">＋</label>`:'');
+  row.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    ePics.splice(+b.dataset.x,1); drawPics(); setCover(eCover);
+  });
+  /* 点小图 = 把它和主图对调 */
+  row.querySelectorAll('.pt').forEach(t=>t.onclick=()=>{
+    const i=+t.dataset.i, chosen=ePics[i], old=eCover;
+    if(old)ePics[i]=old; else ePics.splice(i,1);
+    setCover(chosen); drawPics(); toast('这张当主图了 🖼️');
+  });
+  setCover(eCover);
 }
 function drawTags(){
   $('#eTags').innerHTML=(eSrc==='drink'?DRINKTAGS:TAGS).map(t=>`<button data-t="${t}" class="${eTagSel.includes(t)?'on':''}">${t}</button>`).join('');
@@ -1294,7 +1358,8 @@ function openEdit(id,pre,onlyHome){
   $('#eTitle').textContent=id?'改一改':'加一道菜';
   /* 从「自家厨房」的 ＋ 进来只给两个人选,店那两个不出现 */
   $$('#eSeg button').forEach(b=>b.classList.toggle('hide',!!onlyHome&&(b.dataset.s==='delivery'||b.dataset.s==='restaurant')));
-  setSrc(d.src||'zhe'); setSt(d.st||'done'); setPaws(d.paws||0); setFav(d.fav||0); setCover(d.cover||'');
+  ePics=[...(d.pics||[])].filter(Boolean);
+  setSrc(d.src||'zhe'); setSt(d.st||'done'); setPaws(d.paws||0); setFav(d.fav||0); setCover(d.cover||''); drawPics();
   eTagSel=[...(d.tags||[])]; drawTags();
   $('#eName').value=d.name||''; $('#eShop').value=d.shop||''; $('#ePrice').value=d.price||'';
   $('#eNote').value=d.note||'';
@@ -1377,14 +1442,36 @@ $('#cpOk').onclick=()=>{
 };
 
 $('#eFile').onchange=e=>{const f=e.target.files[0];
-  if(f)openCrop(f,async u=>{try{setCover(await savePic(u))}catch{toast('照片存不下 😖')}},400);
+  if(f)openCrop(f,async u=>{try{setCover(await savePic(u));drawPics()}catch{toast('照片存不下 😖')}},400);
   e.target.value=''};
+/* 一次选好几张:裁完一张接着下一张。中途点「取消」就停在那儿,已裁的都留着 */
+function cropQueue(files,out,done){
+  const list=[...files];
+  const next=()=>{
+    const f=list.shift(); if(!f)return;
+    openCrop(f,async u=>{
+      try{ done(await savePic(u)) }catch{ toast('照片存不下 😖') }
+      setTimeout(next,80);
+    },out);
+  };
+  next();
+}
+$('#ePicFile').onchange=e=>{
+  const fs=[...e.target.files]; e.target.value='';
+  if(!fs.length)return;
+  const room=MAXPICS-ePics.length;
+  if(fs.length>room){toast(`一道菜最多再加 ${room} 张,先裁这几张`)}
+  cropQueue(fs.slice(0,Math.max(0,room)),400,ref=>{
+    if(!eCover)setCover(ref); else ePics.push(ref);       // 还没有主图就先当主图
+    drawPics();
+  });
+};
 
 let saving=false;
 $('#eSave').onclick=()=>{
   const name=$('#eName').value.trim();
   /* 菜名可以空着 —— 下馆子经常记不住每道菜叫啥,有张照片就够了 */
-  if(!name&&!eCover&&!$('#eNote').value.trim()){
+  if(!name&&!eCover&&!ePics.length&&!$('#eNote').value.trim()){
     toast('给张照片,或者写个名字 📷');$('#eName').focus();return}
   const old=editId?get(editId):null;
   const home=eSrc==='zhe'||eSrc==='me';
@@ -1396,17 +1483,31 @@ $('#eSave').onclick=()=>{
     shId=s.id;
   }
   const d={id:editId||uid(),name,src:eSrc,st:eSt,paws:eSt==='want'?0:ePaws,fav:eFav,
-    tags:eTagSel,cover:eCover,note:$('#eNote').value.trim(),
+    tags:eTagSel,cover:eCover,pics:ePics.filter(Boolean),note:$('#eNote').value.trim(),
     shop:shopName,shopId:shId,price:home?0:(+$('#ePrice').value||0),
     logs:old?old.logs:[],at:old?old.at:today()};
   if(saving)return; saving=true; setTimeout(()=>saving=false,800);      // 防手快连点
-  if(eCover&&eCover.length>900000){alert('这张照片太大了,存不下 😖');saving=false;return}
+  if([eCover,...ePics].some(v=>v&&v.length>900000)){alert('有张照片太大了,存不下 😖');saving=false;return}
   const backup=dishes;
   if(editId)dishes=dishes.map(x=>x.id===editId?d:x); else dishes.unshift(d);
   if(!persist()){dishes=backup;saving=false;return}                      // 没存进去就还原,别骗人
   closeSheets();render();toast(editId?'改好了 ✏️':'记下来了 🍽️');
   if(shId&&view==='out')setTimeout(()=>openShop(shId),120);
 };
+
+/* ── 看大图 ── */
+let lbL=[], lbI=0;
+function lbShow(){
+  $('#lbImg').src=picURL(lbL[lbI])||'';
+  $('#lbN').textContent=lbL.length>1?`${lbI+1} / ${lbL.length}`:'';
+  const h=lbL.length>1?'':'hidden';
+  $('#lbPrev').style.visibility=h; $('#lbNext').style.visibility=h;
+}
+function lbOpen(list,i){ lbL=(list||[]).filter(v=>picURL(v)); if(!lbL.length)return;
+  lbI=Math.max(0,Math.min(lbL.length-1,i||0)); lbShow(); $('#lb').classList.add('on'); }
+$('#lb').onclick=e=>{ if(e.target.closest('.nav'))return; $('#lb').classList.remove('on'); $('#lbImg').src='' };
+$('#lbPrev').onclick=e=>{e.stopPropagation();lbI=(lbI-1+lbL.length)%lbL.length;lbShow()};
+$('#lbNext').onclick=e=>{e.stopPropagation();lbI=(lbI+1)%lbL.length;lbShow()};
 
 /* ── 详情 ── */
 let viewId=null, logPhoto='';
@@ -1418,8 +1519,11 @@ function openView(id){
   if(d.price)kv.push(['价格','¥'+d.price]);
   kv.push(['谁出品',SRC[d.src].e+' '+nameOf(d.src)],['加进菜单',fmt(d.at)]);
   $('#vTitle').textContent=dnm(d);
+  /* 主图排头,过程图跟在后面 —— 卡片上永远只露主图这一张 */
+  const gal=[d.cover,...(d.pics||[])].filter(v=>picURL(v));
   $('#vBody').innerHTML=`
     <div class="vpic s-${d.src}" style="${pic(d)}">${emo(d)}</div>
+    ${gal.length>1?`<div class="vthumbs">${gal.map((p,i)=>`<i data-g="${i}" class="${i?'':'on'}" style="background-image:url(${picURL(p)})"></i>`).join('')}</div>`:''}
     <div class="vh"><span class="n">${esc(dnm(d))}</span>${d.fav?'<span style="font-size:20px">❤️</span>':''}</div>
     <div class="vmeta">${esc(sub(d))}${d.st==='want'?' · 🔖 还没吃到':''}</div>
     ${d.st==='done'?`<div class="vpaws">${paw(d.paws)||'<span style="font-size:13px;color:var(--ink3)">还没评分</span>'}</div>`:''}
@@ -1452,6 +1556,11 @@ function openView(id){
     <div class="blk">${kv.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
     <button class="danger" id="vDel">从菜单里删掉</button>`;
 
+  if(gal.length){
+    const vp=$('#vBody').querySelector('.vpic');
+    if(vp&&picURL(d.cover))vp.onclick=()=>lbOpen(gal,0);
+    $('#vBody').querySelectorAll('[data-g]').forEach(t=>t.onclick=()=>lbOpen(gal,+t.dataset.g));
+  }
   const c=$('#vCart'); if(c)c.onclick=()=>{toggleCart(id);openView(id)};
   const vs=$('#vShop'); if(vs)vs.onclick=()=>{const s=d.shopId;closeSheets();setTimeout(()=>openShop(s),270)};
   const dn=$('#vDone'); if(dn)dn.onclick=()=>{d.st='done';persist();render();openView(id);toast('恭喜吃到 🎉 记得评猫爪')};
